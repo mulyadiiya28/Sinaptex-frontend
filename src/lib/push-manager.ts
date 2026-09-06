@@ -146,9 +146,9 @@ export async function registerSerwistServiceWorker(): Promise<ServiceWorkerRegis
     return null;
   }
 
-  // ✅ Guard: jangan register manual di development — Serwist sudah handle di production
-  if (process.env.NODE_ENV === "development") {
-    console.log("[PushManager] SW registration skipped: development mode");
+  // Izinkan disable manual via env (berguna saat debugging)
+  if (process.env.NEXT_PUBLIC_DISABLE_SW === "true") {
+    console.log("[PushManager] SW registration skipped: NEXT_PUBLIC_DISABLE_SW=true");
     return null;
   }
 
@@ -173,6 +173,7 @@ export async function registerSerwistServiceWorker(): Promise<ServiceWorkerRegis
       }
     });
 
+    console.log("[Serwist] Service Worker registered:", registration.scope);
     return registration;
   } catch (error) {
     console.warn("[Serwist] Service worker registration failed:", error);

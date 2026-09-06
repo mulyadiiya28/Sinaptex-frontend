@@ -4,8 +4,10 @@ import withSerwistInit from "@serwist/next";
 const withSerwist = withSerwistInit({
   swSrc: "src/sw.ts",
   swDest: "public/sw.js",
-  disable: process.env.NODE_ENV !== "production",
-  reloadOnOnline: false, 
+  // Aktifkan SW juga di development agar PWA bisa diuji tanpa production build.
+  // Set NEXT_PUBLIC_DISABLE_SW=true jika ingin mematikan SW di dev.
+  disable: process.env.NEXT_PUBLIC_DISABLE_SW === "true",
+  reloadOnOnline: false,
 });
 
 const nextConfig: NextConfig = {
