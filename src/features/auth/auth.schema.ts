@@ -29,7 +29,7 @@ export interface Me {
   avatarUrl?: string | null;
   accountStatus?: string;
   businessRoles?: Array<{ role: string }> | null;
-  parties?: Array<any> | null;
+  parties?: Array<Record<string, unknown>> | null;
   createdAt?: string;
   updatedAt?: string;
 }

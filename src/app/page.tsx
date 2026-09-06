@@ -24,7 +24,6 @@ import {
   Clock,
   Flame,
   Eye as EyeIcon,
-  Loader2,
   AlertCircle,
   UserPlus,
   MessageSquare,
@@ -79,7 +78,11 @@ async function fetchOpportunities(filters?: {
   const endpoint = query ? `/api/v1/opportunities?${query}` : "/api/v1/opportunities";
 
   try {
-    return await apiClient.get<Opportunity[]>(endpoint);
+    const res = await apiClient.get<Opportunity[]>(endpoint);
+    if (Array.isArray(res) && res.length > 0) {
+      return res;
+    }
+    return staticOpportunities;
   } catch {
     // Fallback ke static data jika API belum tersedia
     return staticOpportunities;
@@ -88,7 +91,11 @@ async function fetchOpportunities(filters?: {
 
 async function fetchCategories(): Promise<Category[]> {
   try {
-    return await apiClient.get<Category[]>("/api/v1/categories");
+    const res = await apiClient.get<Category[]>("/api/v1/categories");
+    if (Array.isArray(res) && res.length > 0) {
+      return res;
+    }
+    return staticCategories;
   } catch {
     return staticCategories;
   }

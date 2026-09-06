@@ -1,7 +1,8 @@
 import { io, Socket } from "socket.io-client";
 import { getAccessToken } from "@/lib/supabase-client";
+import { resolveApiBaseUrl } from "@/lib/api-client";
 
-const SOCKET_URL = (process.env.NEXT_PUBLIC_API_URL ?? "https://cahayaastera.com").replace(/\/api\/v1\/?$/, "");
+const SOCKET_URL = resolveApiBaseUrl().replace(/\/api\/v1\/?$/, "");
 
 let socket: Socket | null = null;
 let connectingPromise: Promise<Socket> | null = null;

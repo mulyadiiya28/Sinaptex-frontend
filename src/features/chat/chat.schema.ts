@@ -5,12 +5,32 @@ import { z } from "zod";
 export const chatOriginTypeSchema = z.enum(["NEED", "OFFER", "PROFILE"]);
 export type ChatOriginType = z.infer<typeof chatOriginTypeSchema>;
 
+export const messageReactionSchema = z.object({
+  emoji: z.string(),
+  count: z.number().default(0),
+  users: z.array(z.string()).default([]),
+});
+export type MessageReaction = z.infer<typeof messageReactionSchema>;
+
+export type ReactionRecord = Record<string, string[]>;
+
+export const messageAttachmentSchema = z.object({
+  type: z.enum(["image", "file"]).default("image"),
+  url: z.string(),
+  name: z.string().optional(),
+  size: z.number().optional(),
+});
+export type MessageAttachment = z.infer<typeof messageAttachmentSchema>;
+
 export const messageSchema = z.object({
   id: z.string(),
   conversationId: z.string(),
   senderId: z.string(),
   content: z.string(),
   createdAt: z.string(),
+  reactions: z.record(z.string(), z.array(z.string())).optional(),
+  imageUrl: z.string().optional(),
+  attachments: z.array(messageAttachmentSchema).optional(),
 });
 export type ChatMessage = z.infer<typeof messageSchema>;
 

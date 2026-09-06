@@ -1,9 +1,39 @@
 import { getAccessToken } from "@/lib/supabase-client";
 
+export function resolveApiBaseUrl(): string {
+  let url = (process.env.NEXT_PUBLIC_API_URL || "").trim();
+  url = url.replace(/^[\\"'"]+|[\\"'"]+$/g, "").trim();
+
+  // If empty or points to Next.js port 3000 (which only serves the frontend in this container),
+  // fallback to the official live Sinaptex backend engine.
+  if (
+    !url ||
+    url === "localhost" ||
+    url === "localhost:3000" ||
+    url === "http://localhost:3000" ||
+    url === "https://localhost:3000" ||
+    url === "127.0.0.1:3000" ||
+    url === "http://127.0.0.1:3000"
+  ) {
+    return "https://cahayaastera.com";
+  }
+
+  // Ensure protocol
+  if (!/^https?:\/\//i.test(url)) {
+    if (url.startsWith("localhost") || url.startsWith("127.0.0.1")) {
+      url = `http://${url}`;
+    } else {
+      url = `https://${url}`;
+    }
+  }
+
+  return url.replace(/\/+$/, "");
+}
+
 /**
  * Base URL API engine. Default ke server live Sinaptex (https://cahayaastera.com).
  */
-const BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "https://cahayaastera.com").replace(/\/+$/, "");
+export const BASE_URL = resolveApiBaseUrl();
 
 
 export type PaginationMeta = {

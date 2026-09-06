@@ -62,10 +62,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!mounted) return;
         setMe(me);
         queryClient.setQueryData(authKeys.me, me);
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (!mounted) return;
 
-        const msg = err?.message || "";
+        const msg = err instanceof Error ? err.message : String(err || "");
 
         // ✅ User ada di Supabase tapi belum register di backend Sinaptex
         if (

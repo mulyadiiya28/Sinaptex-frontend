@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect, use } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback, use } from "react";
 import Link from "next/link";
 import {
   MessageSquare,
@@ -12,8 +12,16 @@ import {
 } from "lucide-react";
 import { useConversations, useMessages } from "@/features/chat/chat.hooks";
 import { useChatSocket } from "@/features/chat/chat-socket";
-import { ChatMessage, Conversation } from "@/features/chat/chat.schema";
+import { chatApi } from "@/features/chat/chat.api";
+import { ChatMessage, Conversation, ReactionRecord } from "@/features/chat/chat.schema";
 import { useSessionStore } from "@/store/use-session-store";
+import { MessageReactions, MessageReactionTrigger } from "@/components/chat/message-reactions";
+import {
+  ChatAttachmentMenu,
+  AttachmentPreview,
+  SelectedAttachment,
+} from "@/components/chat/chat-attachment-menu";
+import { ImageLightbox, ChatImageThumb } from "@/components/chat/image-lightbox";
 
 export default function ChatPage({
   searchParams,
@@ -31,6 +39,11 @@ export default function ChatPage({
   const [inputText, setInputText] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [sentMessages, setSentMessages] = useState<ChatMessage[]>([]);
+  const [userReactions, setUserReactions] = useState<Record<string, ReactionRecord>>({});
+  const [activePickerMsgId, setActivePickerMsgId] = useState<string | null>(null);
+  const [pendingAttachment, setPendingAttachment] = useState<SelectedAttachment | null>(null);
+  const [lightboxImage, setLightboxImage] = useState<{ url: string; caption?: string } | null>(null);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
 
   // Compute active conversation ID
   const activeConvId = useMemo(() => {
@@ -43,13 +56,50 @@ export default function ChatPage({
   }, [selectedConvId, targetOppId, conversations]);
 
   const { data: historyMessages, isLoading: isMsgLoading } = useMessages(activeConvId);
+
+  const handleSocketReaction = useCallback(
+    (data: { messageId: string; emoji: string; userId: string; action?: "add" | "remove" | "toggle" }) => {
+      const { messageId, emoji, userId, action } = data;
+      setUserReactions((prev) => {
+        const currentMsg = { ...(prev[messageId] || {}) };
+        const users = [...(currentMsg[emoji] || [])];
+        let nextUsers: string[];
+
+        if (action === "add") {
+          nextUsers = users.includes(userId) ? users : [...users, userId];
+        } else if (action === "remove") {
+          nextUsers = users.filter((u) => u !== userId);
+        } else {
+          nextUsers = users.includes(userId)
+            ? users.filter((u) => u !== userId)
+            : [...users, userId];
+        }
+
+        if (nextUsers.length === 0) {
+          delete currentMsg[emoji];
+        } else {
+          currentMsg[emoji] = nextUsers;
+        }
+
+        return {
+          ...prev,
+          [messageId]: currentMsg,
+        };
+      });
+    },
+    []
+  );
+
+  const socketOptions = useMemo(() => ({ onReaction: handleSocketReaction }), [handleSocketReaction]);
+
   const {
     messages: socketMessages,
     sendMessage: sendViaSocket,
     isTyping,
     typingUser,
     sendTyping,
-  } = useChatSocket(activeConvId);
+    sendReaction,
+  } = useChatSocket(activeConvId, socketOptions);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -65,10 +115,70 @@ export default function ChatPage({
     );
   }, [historyMessages, socketMessages, sentMessages, activeConvId]);
 
+  // Derive reactions map from message payloads overlayed with real-time user/socket toggles
+  const reactionsMap = useMemo(() => {
+    const map: Record<string, ReactionRecord> = {};
+
+    // 1. Initial reactions from messages
+    allMessages.forEach((m) => {
+      if (m.reactions && Object.keys(m.reactions).length > 0) {
+        map[m.id] = { ...m.reactions };
+      }
+    });
+
+    // 2. Overlay user / socket reactions
+    Object.entries(userReactions).forEach(([msgId, reactions]) => {
+      map[msgId] = {
+        ...(map[msgId] ?? {}),
+        ...reactions,
+      };
+    });
+
+    return map;
+  }, [allMessages, userReactions]);
+
   // Auto scroll on new messages or typing indicator
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [allMessages, isTyping]);
+
+  const handleToggleReaction = async (messageId: string, emoji: string) => {
+    if (!activeConvId) return;
+    const currentUserId = me?.id || "me";
+
+    setUserReactions((prev) => {
+      const currentMsgMap = reactionsMap[messageId] || {};
+      const currentUsers = currentMsgMap[emoji] || [];
+      const hasReacted = currentUsers.includes(currentUserId);
+      const nextUsers = hasReacted
+        ? currentUsers.filter((u) => u !== currentUserId)
+        : [...currentUsers, currentUserId];
+
+      const currentMsg = { ...(prev[messageId] || currentMsgMap) };
+      if (nextUsers.length === 0) {
+        delete currentMsg[emoji];
+      } else {
+        currentMsg[emoji] = nextUsers;
+      }
+
+      return {
+        ...prev,
+        [messageId]: currentMsg,
+      };
+    });
+
+    try {
+      await sendReaction(messageId, emoji, currentUserId);
+    } catch {
+      // socket fallback
+    }
+
+    try {
+      await chatApi.toggleReaction(activeConvId, messageId, emoji);
+    } catch {
+      // rest fallback
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -106,25 +216,89 @@ export default function ChatPage({
     );
   });
 
+  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith("image/")) {
+        const file = items[i].getAsFile();
+        if (file) {
+          const previewUrl = URL.createObjectURL(file);
+          setPendingAttachment({
+            file,
+            previewUrl,
+            name: file.name || `Pasted_image_${Date.now()}.png`,
+            size: file.size,
+          });
+          break;
+        }
+      }
+    }
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingOver(false);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith("image/")) {
+      const previewUrl = URL.createObjectURL(file);
+      setPendingAttachment({
+        file,
+        previewUrl,
+        name: file.name,
+        size: file.size,
+      });
+    }
+  }, []);
+
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
     const text = inputText.trim();
-    if (!text || !activeConvId) return;
+    if ((!text && !pendingAttachment) || !activeConvId) return;
 
+    const currentAttachment = pendingAttachment;
+    setPendingAttachment(null);
     setInputText("");
+
+    const displayContent = text || "📷 Foto";
+    const attachmentUrl = currentAttachment?.previewUrl;
 
     const tempMsg: ChatMessage = {
       id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       conversationId: activeConvId,
       senderId: me?.id ?? "me",
-      content: text,
+      content: displayContent,
+      imageUrl: attachmentUrl,
+      attachments: currentAttachment
+        ? [
+            {
+              type: "image",
+              url: currentAttachment.previewUrl,
+              name: currentAttachment.name,
+              size: currentAttachment.size,
+            },
+          ]
+        : undefined,
       createdAt: new Date().toISOString(),
     };
 
     setSentMessages((prev) => [...prev, tempMsg]);
 
     try {
-      await sendViaSocket(text);
+      await sendViaSocket(displayContent, {
+        imageUrl: attachmentUrl,
+        attachments: tempMsg.attachments,
+      });
     } catch {
       // handled
     }
@@ -224,7 +398,26 @@ export default function ChatPage({
         </div>
 
         {/* Right column: Active Chat Window */}
-        <div className="flex flex-1 flex-col bg-zinc-50/50 dark:bg-zinc-950/30">
+        <div
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className="relative flex flex-1 flex-col bg-zinc-50/50 dark:bg-zinc-950/30"
+        >
+          {/* Drag-over overlay */}
+          {isDraggingOver && (
+            <div className="absolute inset-0 z-40 m-2 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-blue-500 bg-blue-600/10 backdrop-blur-xs">
+              <div className="rounded-2xl bg-white p-4 text-center shadow-xl dark:bg-zinc-900">
+                <p className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                  Lepaskan foto di sini untuk melampirkan
+                </p>
+                <p className="mt-1 text-xs text-zinc-400">
+                  Foto akan ditambahkan ke pesan obrolan
+                </p>
+              </div>
+            </div>
+          )}
+
           {activeConvId ? (
             <>
               {/* Chat Header */}
@@ -276,20 +469,74 @@ export default function ChatPage({
 
                 {allMessages.map((msg) => {
                   const isMe = msg.senderId === me?.id || msg.senderId === "me";
+                  const msgReactions = reactionsMap[msg.id] || msg.reactions;
+                  const hasImage = Boolean(msg.imageUrl || (msg.attachments && msg.attachments.length > 0));
+
                   return (
                     <div
                       key={msg.id}
-                      className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}
+                      className={`group relative flex flex-col ${isMe ? "items-end" : "items-start"}`}
                     >
+                      {/* Message Bubble + Reaction trigger on hover */}
                       <div
-                        className={`max-w-md rounded-2xl px-4 py-2.5 text-sm ${
-                          isMe
-                            ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                            : "border border-zinc-200 bg-white text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
+                        className={`flex items-center gap-1.5 ${
+                          isMe ? "flex-row" : "flex-row-reverse"
                         }`}
                       >
-                        <p className="whitespace-pre-wrap">{msg.content}</p>
+                        <MessageReactionTrigger
+                          isMe={isMe}
+                          onClick={() =>
+                            setActivePickerMsgId((prev) => (prev === msg.id ? null : msg.id))
+                          }
+                        />
+                        <div
+                          className={`max-w-md overflow-hidden rounded-2xl text-sm ${
+                            isMe
+                              ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                              : "border border-zinc-200 bg-white text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
+                          } ${hasImage ? "p-1.5" : "px-4 py-2.5"}`}
+                        >
+                          {/* Image Thumbnail */}
+                          {hasImage && (
+                            <ChatImageThumb
+                              src={msg.imageUrl || msg.attachments?.[0]?.url || ""}
+                              alt={msg.content}
+                              onOpen={(url) =>
+                                setLightboxImage({
+                                  url,
+                                  caption:
+                                    msg.content && msg.content !== "📷 Foto"
+                                      ? msg.content
+                                      : undefined,
+                                })
+                              }
+                            />
+                          )}
+
+                          {/* Text Content */}
+                          {(!hasImage || (msg.content && msg.content !== "📷 Foto")) && (
+                            <p
+                              className={`whitespace-pre-wrap ${
+                                hasImage ? "px-2 py-1.5 text-xs" : ""
+                              }`}
+                            >
+                              {msg.content}
+                            </p>
+                          )}
+                        </div>
                       </div>
+
+                      {/* Reaction counts shown below the message bubble */}
+                      <MessageReactions
+                        messageId={msg.id}
+                        reactions={msgReactions}
+                        currentUserId={me?.id || "me"}
+                        isMe={isMe}
+                        onToggleReaction={handleToggleReaction}
+                        forcePickerOpen={activePickerMsgId === msg.id}
+                        onClosePicker={() => setActivePickerMsgId(null)}
+                      />
+
                       <span className="mt-1 px-1 text-[10px] text-zinc-400">
                         {new Date(msg.createdAt).toLocaleTimeString("id-ID", {
                           hour: "2-digit",
@@ -319,22 +566,40 @@ export default function ChatPage({
                 <div ref={messagesEndRef} />
               </div>
 
+              {/* Pending image preview */}
+              {pendingAttachment && (
+                <AttachmentPreview
+                  previewUrl={pendingAttachment.previewUrl}
+                  fileName={pendingAttachment.name}
+                  fileSize={pendingAttachment.size}
+                  onRemove={() => setPendingAttachment(null)}
+                />
+              )}
+
               {/* Chat Input */}
               <form
                 onSubmit={handleSend}
                 className="border-t border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900"
               >
                 <div className="flex items-center gap-2">
+                  <ChatAttachmentMenu
+                    onSelectImage={(attachment) => setPendingAttachment(attachment)}
+                  />
                   <input
                     type="text"
                     value={inputText}
                     onChange={handleInputChange}
-                    placeholder="Ketik pesan..."
+                    onPaste={handlePaste}
+                    placeholder={
+                      pendingAttachment
+                        ? "Tambahkan keterangan foto (opsional)..."
+                        : "Ketik pesan..."
+                    }
                     className="flex-1 rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm outline-none ring-zinc-900 focus:ring-2 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:ring-zinc-100"
                   />
                   <button
                     type="submit"
-                    disabled={!inputText.trim()}
+                    disabled={!inputText.trim() && !pendingAttachment}
                     className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-900 text-white transition hover:bg-zinc-800 disabled:opacity-40 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
                   >
                     <Send className="h-4 w-4" />
@@ -356,6 +621,13 @@ export default function ChatPage({
           )}
         </div>
       </div>
+
+      {/* Lightbox dialog for viewing images in full size */}
+      <ImageLightbox
+        imageUrl={lightboxImage?.url ?? null}
+        caption={lightboxImage?.caption}
+        onClose={() => setLightboxImage(null)}
+      />
     </div>
   );
 }

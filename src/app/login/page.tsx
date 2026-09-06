@@ -175,6 +175,18 @@ export default function LoginPage() {
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
             {loading ? "Memuat..." : "Masuk"}
           </button>
+
+          <div className="pt-2 text-center">
+            <button
+              type="button"
+              onClick={() => {
+                router.push(redirect || "/chat");
+              }}
+              className="w-full rounded-xl border border-zinc-200 bg-zinc-100 py-2.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+            >
+              Masuk Mode Tamu / Demo (Langsung ke Chat & Dashboard)
+            </button>
+          </div>
         </form>
       </div>
     </div>

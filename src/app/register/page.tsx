@@ -79,8 +79,8 @@ export default function RegisterPage() {
         phone: phone || undefined,
       });
       router.push("/dashboard");
-    } catch (err: any) {
-      setError(err.message || "Gagal mendaftar");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Gagal mendaftar");
     } finally {
       setLoading(false);
     }

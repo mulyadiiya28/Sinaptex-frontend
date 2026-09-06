@@ -16,6 +16,7 @@ import {
   HelpCircle,
   Phone,
   Loader2,
+  MessageSquare,
 } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
 
@@ -112,6 +113,7 @@ const iconMap: Record<string, React.ElementType> = {
   Phone,
   Globe,
   Menu,
+  MessageSquare,
 };
 
 function NavIcon({ name, className }: { name?: string; className?: string }) {
@@ -136,13 +138,22 @@ const staticNavItems: NavItem[] = [
     order: 1,
   },
   {
+    id: "nav-chat",
+    label: "Chat",
+    labelEn: "Chat",
+    href: "/chat",
+    icon: "MessageSquare",
+    position: "primary",
+    order: 2,
+  },
+  {
     id: "nav-marketplace",
     label: "Marketplace",
     labelEn: "Marketplace",
     href: "/marketplace",
     icon: "Store",
     position: "primary",
-    order: 2,
+    order: 3,
     children: [
       {
         id: "nav-marketplace-need",

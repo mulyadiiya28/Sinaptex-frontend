@@ -59,7 +59,7 @@ self.addEventListener("notificationclick", (event: NotificationEvent) => {
       .matchAll({ type: "window", includeUncontrolled: true })
       .then((clientList: readonly Client[]) => {
         for (let i = 0; i < clientList.length; i++) {
-          let item = clientList[i];
+          const item = clientList[i];
 
           if ("url" in item && item.url.includes(targetUrl) && "focus" in item) {
             return (item as WindowClient).focus();

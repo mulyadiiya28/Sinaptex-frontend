@@ -30,8 +30,8 @@ export default function AuthCallbackPage() {
         await authApi.me();
         // Kalau sukses → user sudah register, ke dashboard
         router.push(redirect);
-      } catch (err: any) {
-        const msg = err?.message || "";
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err || "");
 
         // ❌ Belum register di backend → arahkan ke pengisian profil
         if (msg.includes("Account not registered locally") || msg.includes("Profile not found")) {
