@@ -58,9 +58,11 @@ self.addEventListener("notificationclick", (event: NotificationEvent) => {
     self.clients
       .matchAll({ type: "window", includeUncontrolled: true })
       .then((clientList: readonly Client[]) => {
-        for (const client of clientList) {
-          if ("url" in client && client.url.includes(targetUrl) && "focus" in client) {
-            return (client as WindowClient).focus();
+        for (let i = 0; i < clientList.length; i++) {
+          let item = clientList[i];
+
+          if ("url" in item && item.url.includes(targetUrl) && "focus" in item) {
+            return (item as WindowClient).focus();
           }
         }
         if (self.clients.openWindow) {

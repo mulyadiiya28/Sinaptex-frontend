@@ -26,7 +26,7 @@ Dilengkapi dengan **PWA (Progressive Web App) bertenaga Serwist**, **Web Push No
 - **Web Push & Socket Notifications**: Notifikasi instan di tingkat OS / browser saat ada matching baru, pesan chat, deal baru, dan undangan kemitraan via VAPID Web Push dan Socket.IO bridge.
 - **Peluang Bisnis (Opportunity)**: Posting dan penelusuran Need & Offer dengan kuota berbasis status membership (Gratis vs Pro).
 - **Boost Opportunity**: Peningkatan bobot ranking pencocokan (Basic 3 Hari, Premium 7 Hari, VIP 14 Hari) untuk visibilitas maksimal.
-- **Undangan Matching & Deal Pipeline**: Siklus lengkap dari `PENDING` → `ACCEPTED` / `REJECTED`, otomatis bertransformasi ke Deal (`NEGOTIATION` → `DEAL` → `IN_PROGRESS` → `COMPLETED`).
+- **Undangan Matching & Deal Pipeline**: Siklus lengkap dari `AUTH` → `IDENTITY`→ `VERIFICATION` → `INTENT` → `BUSINESS SUIT/MARKETPLACE` → `OPPORTUNITY` → `MATCHING` → `RANKING` → `CHAT/INVITATION` → `ACCEPTED` / `REJECTED` → `NEGOTIATION` / `DEAL` → `PAYMENT` / `ESCROW` → `COMPLETED` → `REVIEW`.
 - **Chat Real-Time**: Komunikasi interaktif antar mitra bisnis menggunakan Socket.IO client dengan riwayat percakapan.
 - **Membership & Monetisasi**: Pilihan paket Pro Bulanan dan Tahunan dengan checkout URL gateway.
 - **Ulasan & Reputasi Mitra**: Penilaian bintang (1–5) dan ulasan pasca-deal yang memengaruhi skor reputasi profil bisnis.
