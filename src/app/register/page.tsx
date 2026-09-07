@@ -13,17 +13,20 @@ import { SinaptexLogo } from "@/components/sinaptex-logo";
 
 function friendlyAuthError(msg: string): string {
   const m = msg.toLowerCase();
+  if (m.includes("missing bearer") || m.includes("unauthorized") || m.includes("401")) {
+    return "Sesi login habis atau token tidak terkirim. Silakan logout, login Google lagi, lalu lengkapi profil.";
+  }
   if (
     m.includes("account not registered locally") ||
     m.includes("complete registration")
   ) {
-    return "Akun belum terdaftar di Sinaptex. Isi nama lengkap lalu klik Selesaikan Pendaftaran.";
+    return "Profil backend belum terbentuk. Pastikan nama terisi, lalu klik Selesaikan Pendaftaran lagi. Jika berulang, logout dan login ulang.";
   }
-  if (m.includes("email not confirmed") || m.includes("confirm")) {
-    return "Email belum diverifikasi. Cek kotak masuk / spam, buka link konfirmasi, lalu login lagi.";
+  if (m.includes("email not confirmed")) {
+    return "Email belum diverifikasi. Cek kotak masuk / spam.";
   }
   if (m.includes("rate") || m.includes("too many")) {
-    return "Terlalu banyak percobaan. Tunggu beberapa menit lalu coba lagi.";
+    return "Terlalu banyak percobaan. Tunggu beberapa menit.";
   }
   return msg;
 }
@@ -73,8 +76,6 @@ export default function RegisterPage() {
   }, [step]);
 
   async function handleSkipToHome() {
-    // Opsional: keluar dari sesi setengah jadi agar tidak terus dianggap login
-    // User bisa pilih tetap simpan sesi Supabase dan hanya ke beranda
     router.replace("/");
   }
 
@@ -132,38 +133,60 @@ export default function RegisterPage() {
     setError("");
 
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session?.access_token) {
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+
+      const session = sessionData.session;
+      if (!session?.access_token) {
         throw new Error("Sesi login tidak ditemukan. Silakan login ulang.");
       }
 
+      const name = fullName.trim();
+      if (name.length < 2) {
+        throw new Error("Nama lengkap minimal 2 karakter.");
+      }
       if (phone.trim() && phone.trim().length < 8) {
         throw new Error("Nomor telepon minimal 8 digit (atau kosongkan).");
       }
 
-      const body: { fullName: string; phone?: string } = {
-        fullName: fullName.trim(),
-      };
+      const body: { fullName: string; phone?: string } = { fullName: name };
       if (phone.trim()) body.phone = phone.trim();
 
-      const profile = await authApi.register(body);
+      // POST /auth/register — endpoint yang benar-benar membuat profil lokal
+      let profile = await authApi.register(body);
 
-      if (!profile || !profile.id) {
-        const verified = await authApi.me();
-        setMe(verified);
-        queryClient.setQueryData(authKeys.me, verified);
+      // Optional: refresh dari /auth/me (boleh gagal sebentar setelah create)
+      if (!profile?.id) {
+        try {
+          await new Promise((r) => setTimeout(r, 400));
+          profile = await authApi.me();
+        } catch {
+          // Fallback: pakai identitas Supabase agar UI tidak stuck
+          profile = {
+            id: session.user.id,
+            email: session.user.email || email || "",
+            fullName: name,
+            phone: body.phone,
+            isVerified: Boolean(session.user.email_confirmed_at),
+          };
+        }
       } else {
-        setMe(profile);
-        queryClient.setQueryData(authKeys.me, profile);
         try {
           const verified = await authApi.me();
-          setMe(verified);
-          queryClient.setQueryData(authKeys.me, verified);
+          if (verified?.id) profile = verified;
         } catch {
-          /* pakai hasil register */
+          /* tetap pakai hasil register */
         }
       }
 
+      if (!profile?.id) {
+        throw new Error(
+          "Register terkirim tapi profil tidak terbaca. Coba login ulang, atau cek Network: POST /api/v1/auth/register."
+        );
+      }
+
+      setMe(profile);
+      queryClient.setQueryData(authKeys.me, profile);
       router.replace("/dashboard");
     } catch (err: unknown) {
       submittingRef.current = false;
@@ -206,15 +229,9 @@ export default function RegisterPage() {
             ) : step === "verify-email" ? (
               "Kami mengirim link konfirmasi ke email Anda."
             ) : (
-              "Satu langkah lagi — buat profil di backend Sinaptex."
+              "Isi nama, lalu Selesaikan Pendaftaran untuk membuat profil di server Sinaptex."
             )}
           </p>
-          {reason === "complete_profile" && step === "profile" && (
-            <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">
-              Login berhasil, profil Sinaptex belum ada. Isi nama lalu Selesaikan, atau lewati ke
-              beranda dulu.
-            </p>
-          )}
         </div>
 
         {step === "verify-email" && (
@@ -251,7 +268,6 @@ export default function RegisterPage() {
                 />
               </div>
             </div>
-
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">Password</label>
               <div className="relative">
@@ -263,18 +279,17 @@ export default function RegisterPage() {
                   placeholder="••••••••"
                   required
                   minLength={6}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-10 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-[#0B2F6E] focus:bg-white focus:ring-2 focus:ring-[#0B2F6E]/20"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-10 text-sm text-slate-900 outline-none focus:border-[#0B2F6E] focus:bg-white focus:ring-2 focus:ring-[#0B2F6E]/20"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>
-
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">
                 Konfirmasi Password
@@ -291,15 +306,13 @@ export default function RegisterPage() {
                 />
               </div>
             </div>
-
             {error && (
               <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>
             )}
-
             <button
               type="submit"
               disabled={loading}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#0B2F6E] px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#082352] disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#0B2F6E] px-4 py-3 text-sm font-semibold text-white hover:bg-[#082352] disabled:opacity-50"
             >
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
               {loading ? "Memuat..." : "Lanjutkan"}
@@ -362,31 +375,29 @@ export default function RegisterPage() {
 
             <button
               type="submit"
-              disabled={loading}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#FF6B00] px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-orange-600 disabled:opacity-50"
+              disabled={loading || fullName.trim().length < 2}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#FF6B00] px-4 py-3 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-50"
             >
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
               {loading ? "Menyimpan profil..." : "Selesaikan Pendaftaran"}
             </button>
 
-            {(reason === "complete_profile" || fromGoogle) && (
-              <div className="flex flex-col gap-2 border-t border-slate-100 pt-4">
-                <button
-                  type="button"
-                  onClick={handleSkipToHome}
-                  className="w-full text-center text-sm font-medium text-slate-600 hover:text-[#0B2F6E]"
-                >
-                  Lewati dulu — ke beranda
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSignOutAndHome}
-                  className="w-full text-center text-xs text-slate-400 hover:text-red-600"
-                >
-                  Keluar dari sesi ini & ke beranda
-                </button>
-              </div>
-            )}
+            <div className="flex flex-col gap-2 border-t border-slate-100 pt-4">
+              <button
+                type="button"
+                onClick={handleSkipToHome}
+                className="w-full text-center text-sm font-medium text-slate-600 hover:text-[#0B2F6E]"
+              >
+                Lewati dulu — ke beranda
+              </button>
+              <button
+                type="button"
+                onClick={handleSignOutAndHome}
+                className="w-full text-center text-xs text-slate-400 hover:text-red-600"
+              >
+                Keluar dari sesi ini & ke beranda
+              </button>
+            </div>
           </form>
         )}
       </div>
