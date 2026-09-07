@@ -14,19 +14,16 @@ import { SinaptexLogo } from "@/components/sinaptex-logo";
 function friendlyAuthError(msg: string): string {
   const m = msg.toLowerCase();
   if (m.includes("missing bearer") || m.includes("unauthorized") || m.includes("401")) {
-    return "Sesi login habis atau token tidak terkirim. Silakan logout, login Google lagi, lalu lengkapi profil.";
+    return "Token tidak terkirim. Logout → login Google lagi → Selesaikan Pendaftaran.";
   }
-  if (
-    m.includes("account not registered locally") ||
-    m.includes("complete registration")
-  ) {
-    return "Profil backend belum terbentuk. Pastikan nama terisi, lalu klik Selesaikan Pendaftaran lagi. Jika berulang, logout dan login ulang.";
+  if (m.includes("belum menyimpan") || m.includes("verifySupabaseToken")) {
+    return msg;
+  }
+  if (m.includes("account not registered") || m.includes("complete registration")) {
+    return "Profil belum ada di server. Isi nama → Selesaikan Pendaftaran. Jangan lewati langkah ini.";
   }
   if (m.includes("email not confirmed")) {
-    return "Email belum diverifikasi. Cek kotak masuk / spam.";
-  }
-  if (m.includes("rate") || m.includes("too many")) {
-    return "Terlalu banyak percobaan. Tunggu beberapa menit.";
+    return "Email belum diverifikasi. Cek inbox/spam.";
   }
   return msg;
 }
@@ -55,9 +52,11 @@ export default function RegisterPage() {
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [debugHint, setDebugHint] = useState("");
 
+  // Hanya redirect dashboard jika me berasal dari backend (punya fullName atau email dari API)
   useEffect(() => {
-    if (me?.id && !submittingRef.current) {
+    if (me?.id && me.fullName && !submittingRef.current) {
       router.replace("/dashboard");
     }
   }, [me, router]);
@@ -131,6 +130,7 @@ export default function RegisterPage() {
     submittingRef.current = true;
     setLoading(true);
     setError("");
+    setDebugHint("");
 
     try {
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
@@ -142,9 +142,7 @@ export default function RegisterPage() {
       }
 
       const name = fullName.trim();
-      if (name.length < 2) {
-        throw new Error("Nama lengkap minimal 2 karakter.");
-      }
+      if (name.length < 2) throw new Error("Nama lengkap minimal 2 karakter.");
       if (phone.trim() && phone.trim().length < 8) {
         throw new Error("Nomor telepon minimal 8 digit (atau kosongkan).");
       }
@@ -152,46 +150,28 @@ export default function RegisterPage() {
       const body: { fullName: string; phone?: string } = { fullName: name };
       if (phone.trim()) body.phone = phone.trim();
 
-      // POST /auth/register — endpoint yang benar-benar membuat profil lokal
-      let profile = await authApi.register(body);
+      setDebugHint("Mengirim POST /api/v1/auth/register …");
 
-      // Optional: refresh dari /auth/me (boleh gagal sebentar setelah create)
-      if (!profile?.id) {
-        try {
-          await new Promise((r) => setTimeout(r, 400));
-          profile = await authApi.me();
-        } catch {
-          // Fallback: pakai identitas Supabase agar UI tidak stuck
-          profile = {
-            id: session.user.id,
-            email: session.user.email || email || "",
-            fullName: name,
-            phone: body.phone,
-            isVerified: Boolean(session.user.email_confirmed_at),
-          };
-        }
-      } else {
-        try {
-          const verified = await authApi.me();
-          if (verified?.id) profile = verified;
-        } catch {
-          /* tetap pakai hasil register */
-        }
-      }
+      // HARUS sukses di backend — tidak ada profil palsu di localStorage
+      const profile = await authApi.register(body);
 
-      if (!profile?.id) {
+      if (!profile?.id || !profile.fullName) {
         throw new Error(
-          "Register terkirim tapi profil tidak terbaca. Coba login ulang, atau cek Network: POST /api/v1/auth/register."
+          "Backend tidak mengembalikan profil lengkap. Cek response POST /auth/register di Network."
         );
       }
 
       setMe(profile);
       queryClient.setQueryData(authKeys.me, profile);
+      setDebugHint("Profil tersimpan di server. Mengarah ke dashboard…");
       router.replace("/dashboard");
     } catch (err: unknown) {
       submittingRef.current = false;
       const msg = err instanceof Error ? err.message : "Gagal mendaftar";
       setError(friendlyAuthError(msg));
+      setDebugHint(
+        "Buka DevTools → Network → filter 'register'. Status harus 200/201. Body harus berisi user/profile."
+      );
     } finally {
       setLoading(false);
     }
@@ -219,18 +199,18 @@ export default function RegisterPage() {
                 : "Lengkapi Profil"}
           </h1>
           <p className="mt-2 text-sm text-slate-500">
-            {step === "signup" ? (
-              <>
-                Sudah punya akun?{" "}
-                <Link href="/login" className="font-medium text-[#FF6B00] hover:text-orange-600">
-                  Masuk
-                </Link>
-              </>
-            ) : step === "verify-email" ? (
-              "Kami mengirim link konfirmasi ke email Anda."
-            ) : (
-              "Isi nama, lalu Selesaikan Pendaftaran untuk membuat profil di server Sinaptex."
-            )}
+            {step === "profile"
+              ? "Data ini disimpan ke User + Profile di server Sinaptex (bukan hanya di browser)."
+              : step === "signup"
+                ? (
+                    <>
+                      Sudah punya akun?{" "}
+                      <Link href="/login" className="font-medium text-[#FF6B00] hover:text-orange-600">
+                        Masuk
+                      </Link>
+                    </>
+                  )
+                : "Kami mengirim link konfirmasi ke email Anda."}
           </p>
         </div>
 
@@ -279,7 +259,7 @@ export default function RegisterPage() {
                   placeholder="••••••••"
                   required
                   minLength={6}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-10 text-sm text-slate-900 outline-none focus:border-[#0B2F6E] focus:bg-white focus:ring-2 focus:ring-[#0B2F6E]/20"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-10 text-sm outline-none focus:border-[#0B2F6E] focus:bg-white focus:ring-2 focus:ring-[#0B2F6E]/20"
                 />
                 <button
                   type="button"
@@ -372,6 +352,9 @@ export default function RegisterPage() {
             {error && (
               <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>
             )}
+            {debugHint && (
+              <p className="text-[11px] text-slate-400">{debugHint}</p>
+            )}
 
             <button
               type="submit"
@@ -379,7 +362,7 @@ export default function RegisterPage() {
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#FF6B00] px-4 py-3 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-50"
             >
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-              {loading ? "Menyimpan profil..." : "Selesaikan Pendaftaran"}
+              {loading ? "Menyimpan ke server…" : "Selesaikan Pendaftaran"}
             </button>
 
             <div className="flex flex-col gap-2 border-t border-slate-100 pt-4">
