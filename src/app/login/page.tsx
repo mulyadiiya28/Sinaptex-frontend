@@ -59,8 +59,13 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-white via-slate-50 to-blue-50 px-4">
       <div className="w-full max-w-md space-y-6 rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
         <div className="flex flex-col items-center text-center">
-          <SinaptexLogo variant="vertical" size="md" showTagline />
-          <h1 className="mt-4 text-2xl font-bold tracking-tight text-[#0B2F6E]">
+          <SinaptexLogo
+            variant="horizontal"
+            size="md"
+            showTagline
+            taglineText="Ekosistem Bisnis Dan Layanan Cerdas"
+          />
+          <h1 className="mt-6 text-2xl font-bold tracking-tight text-[#0B2F6E]">
             Masuk ke Sinaptex
           </h1>
           <p className="mt-2 text-sm text-slate-500">
