@@ -58,7 +58,7 @@ interface Category {
   icon: string;
 }
 
-/** Static contoh UI saja — ID need-*/offer-* JANGAN di-link ke /opportunities (butuh auth + bukan UUID API) */
+// Static contoh UI saja — ID need-* / offer-* JANGAN di-link ke /opportunities (butuh auth + bukan UUID API)
 const staticOpportunities: Opportunity[] = [
   {
     id: "need-001",
