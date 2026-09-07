@@ -14,6 +14,7 @@ import {
   X,
   Download,
   CheckCircle2,
+  GitCompareArrows,
 } from "lucide-react";
 import { useUIStore } from "@/store/use-ui-store";
 import { usePWA } from "@/components/pwa-provider";
@@ -23,11 +24,12 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/marketplace", label: "Marketplace", icon: Store },
   { href: "/opportunities", label: "Opportunity saya", icon: Briefcase },
+  { href: "/matching", label: "Matching", icon: GitCompareArrows },
   { href: "/chat", label: "Chat", icon: MessageSquare },
   { href: "/deals", label: "Deal", icon: Handshake },
   { href: "/membership", label: "Membership", icon: Crown },
-  { href: "/profile", label: "Profil", icon: User },
   { href: "/notifications", label: "Notifikasi", icon: Bell },
+  { href: "/profile", label: "Profil", icon: User },
 ];
 
 export function AppSidebar() {
@@ -39,29 +41,25 @@ export function AppSidebar() {
 
   return (
     <>
-      {/* Mobile Backdrop */}
       <div
         className="fixed inset-0 z-40 bg-black/40 md:hidden"
         onClick={() => setSidebarOpen(false)}
       />
 
-      {/* Sidebar Container */}
-      <aside className="fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-zinc-200 bg-white shadow-xl dark:border-zinc-800 dark:bg-zinc-900 md:static md:w-56 md:shadow-none">
-        <div className="flex h-16 items-center justify-between border-b border-zinc-200 px-3.5 dark:border-zinc-800">
+      <aside className="fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-slate-200 bg-white shadow-xl md:static md:w-56 md:shadow-none">
+        {/* Tinggi sama dengan AppHeader (h-16) agar sejajar */}
+        <div className="flex h-16 items-center justify-between border-b border-slate-200 px-3.5">
           <Link
             href="/dashboard"
             onClick={() => setSidebarOpen(false)}
-            className="flex items-center min-w-0 transition hover:opacity-90"
+            className="flex min-w-0 items-center transition hover:opacity-90"
           >
-            <SinaptexLogo
-              variant="compact"
-              size="sm"
-            />
+            <SinaptexLogo variant="compact" size="sm" />
           </Link>
           <button
             type="button"
             onClick={() => setSidebarOpen(false)}
-            className="rounded-lg p-1 text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800 md:hidden"
+            className="rounded-lg p-1 text-slate-500 hover:bg-slate-100 md:hidden"
             aria-label="Tutup menu"
           >
             <X className="h-5 w-5" />
@@ -78,14 +76,12 @@ export function AppSidebar() {
                 key={item.href}
                 href={item.href}
                 onClick={() => {
-                  if (window.innerWidth < 768) {
-                    setSidebarOpen(false);
-                  }
+                  if (window.innerWidth < 768) setSidebarOpen(false);
                 }}
                 className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition ${
                   active
-                    ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50"
-                    : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-50"
+                    ? "bg-blue-50 text-[#0B2F6E]"
+                    : "text-slate-600 hover:bg-slate-50 hover:text-[#0B2F6E]"
                 }`}
               >
                 <Icon className="h-4 w-4 shrink-0" />
@@ -95,10 +91,9 @@ export function AppSidebar() {
           })}
         </nav>
 
-        {/* PWA status / install banner */}
-        <div className="border-t border-zinc-200 p-3 dark:border-zinc-800">
+        <div className="border-t border-slate-200 p-3">
           {isInstalled ? (
-            <div className="flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
+            <div className="flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
               <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
               <span>Sinaptex PWA Aktif</span>
             </div>
@@ -106,15 +101,13 @@ export function AppSidebar() {
             <button
               type="button"
               onClick={promptInstall}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-zinc-900 px-3 py-2 text-xs font-medium text-white transition hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#0B2F6E] px-3 py-2 text-xs font-medium text-white transition hover:bg-[#082352]"
             >
               <Download className="h-3.5 w-3.5" />
               Install Aplikasi PWA
             </button>
           ) : (
-            <div className="text-[11px] text-zinc-400 dark:text-zinc-500">
-              Sinaptex v1.0 • Serwist PWA
-            </div>
+            <div className="text-[11px] text-slate-400">Sinaptex v1.0</div>
           )}
         </div>
       </aside>

@@ -5,7 +5,7 @@ import { AppHeader } from "@/components/app-header";
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <RequireAuth>
-      <div className="flex min-h-screen bg-zinc-50 dark:bg-zinc-950">
+      <div className="flex min-h-screen bg-gradient-to-br from-white via-slate-50 to-blue-50">
         <AppSidebar />
         <div className="flex min-w-0 flex-1 flex-col">
           <AppHeader />

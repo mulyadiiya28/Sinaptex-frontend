@@ -20,12 +20,12 @@ export function AppHeader() {
   }
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between border-b border-zinc-200 bg-white px-4 dark:border-zinc-800 dark:bg-zinc-900">
+    <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur-sm">
       <div className="flex items-center gap-2">
         <button
           type="button"
           onClick={toggleSidebar}
-          className="inline-flex items-center justify-center rounded-md border border-zinc-200 p-1.5 text-zinc-600 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          className="inline-flex items-center justify-center rounded-md border border-slate-200 p-1.5 text-slate-600 transition hover:bg-slate-50"
           aria-label="Toggle sidebar"
         >
           {isSidebarOpen ? (
@@ -43,10 +43,10 @@ export function AppHeader() {
         <NotificationBell />
 
         {me && (
-          <span className="hidden text-sm text-zinc-600 sm:inline dark:text-zinc-400">
+          <span className="hidden text-sm text-slate-600 sm:inline">
             {me.fullName}
             {me.isVerified && (
-              <span className="ml-1.5 rounded bg-emerald-100 px-1.5 py-0.5 text-xs text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">
+              <span className="ml-1.5 rounded bg-emerald-100 px-1.5 py-0.5 text-xs text-emerald-700">
                 verified
               </span>
             )}
@@ -56,7 +56,7 @@ export function AppHeader() {
           type="button"
           onClick={handleLogout}
           disabled={signOut.isPending}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 transition hover:bg-zinc-100 disabled:opacity-60 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-700 transition hover:bg-slate-100 disabled:opacity-60"
         >
           <LogOut className="h-3.5 w-3.5" />
           {signOut.isPending ? "Keluar…" : "Keluar"}
