@@ -7,9 +7,26 @@ import { supabase } from "@/lib/supabase-client";
 import { authApi } from "@/features/auth/auth.api";
 import { authKeys } from "@/features/auth/auth.hooks";
 import { useSessionStore } from "@/store/use-session-store";
-import { User, Mail, Lock, Phone, Eye, EyeOff, Loader2 } from "lucide-react";
+import { User, Mail, Lock, Phone, Eye, EyeOff, Loader2, MailCheck } from "lucide-react";
 import Link from "next/link";
 import { SinaptexLogo } from "@/components/sinaptex-logo";
+
+function friendlyAuthError(msg: string): string {
+  const m = msg.toLowerCase();
+  if (
+    m.includes("account not registered locally") ||
+    m.includes("complete registration")
+  ) {
+    return "Akun belum terdaftar di Sinaptex. Isi nama lengkap lalu klik Selesaikan Pendaftaran (bukan login ulang).";
+  }
+  if (m.includes("email not confirmed") || m.includes("confirm")) {
+    return "Email belum diverifikasi. Cek kotak masuk / spam, buka link konfirmasi, lalu login lagi.";
+  }
+  if (m.includes("rate") || m.includes("too many")) {
+    return "Terlalu banyak percobaan. Tunggu beberapa menit lalu coba lagi.";
+  }
+  return msg;
+}
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -24,7 +41,7 @@ export default function RegisterPage() {
   const fromGoogle =
     searchParams.get("from") === "google" || searchParams.get("from") === "session";
 
-  const [step, setStep] = useState<"signup" | "profile">(
+  const [step, setStep] = useState<"signup" | "verify-email" | "profile">(
     stepParam === "profile" || reason === "complete_profile" ? "profile" : "signup"
   );
   const [email, setEmail] = useState("");
@@ -36,7 +53,6 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Jika sudah punya profil di store → dashboard (tanpa loop: hanya sekali)
   useEffect(() => {
     if (me?.id && !submittingRef.current) {
       router.replace("/dashboard");
@@ -80,13 +96,23 @@ export default function RegisterPage() {
 
     setLoading(true);
 
-    const { error: signUpError } = await supabase.auth.signUp({
+    const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback?redirect=/register?reason=complete_profile&step=profile`,
+      },
     });
 
     if (signUpError) {
-      setError(signUpError.message);
+      setError(friendlyAuthError(signUpError.message));
+      setLoading(false);
+      return;
+    }
+
+    // Supabase: jika "Confirm email" aktif, session null sampai user klik link email
+    if (!data.session) {
+      setStep("verify-email");
       setLoading(false);
       return;
     }
@@ -103,32 +129,35 @@ export default function RegisterPage() {
     setError("");
 
     try {
-      // Pastikan token Supabase siap
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session?.access_token) {
         throw new Error("Sesi login tidak ditemukan. Silakan login ulang.");
       }
 
-      const profile = await authApi.register({
+      if (phone.trim() && phone.trim().length < 8) {
+        throw new Error("Nomor telepon minimal 8 digit (atau kosongkan).");
+      }
+
+      const body: { fullName: string; phone?: string } = {
         fullName: fullName.trim(),
-        phone: phone.trim() || undefined,
-      });
+      };
+      if (phone.trim()) body.phone = phone.trim();
+
+      const profile = await authApi.register(body);
 
       if (!profile || !profile.id) {
-        // Beberapa backend mengembalikan envelope kosong — coba /auth/me
         const verified = await authApi.me();
         setMe(verified);
         queryClient.setQueryData(authKeys.me, verified);
       } else {
         setMe(profile);
         queryClient.setQueryData(authKeys.me, profile);
-        // Best-effort sync dengan /auth/me
         try {
           const verified = await authApi.me();
           setMe(verified);
           queryClient.setQueryData(authKeys.me, verified);
         } catch {
-          // tetap pakai hasil register
+          /* pakai hasil register */
         }
       }
 
@@ -136,7 +165,7 @@ export default function RegisterPage() {
     } catch (err: unknown) {
       submittingRef.current = false;
       const msg = err instanceof Error ? err.message : "Gagal mendaftar";
-      setError(msg);
+      setError(friendlyAuthError(msg));
     } finally {
       setLoading(false);
     }
@@ -157,7 +186,11 @@ export default function RegisterPage() {
             taglineText="Ekosistem Bisnis Dan Layanan Cerdas"
           />
           <h1 className="mt-6 text-2xl font-bold tracking-tight text-[#0B2F6E]">
-            {step === "signup" ? "Buat Akun Sinaptex" : "Lengkapi Profil"}
+            {step === "signup"
+              ? "Buat Akun Sinaptex"
+              : step === "verify-email"
+                ? "Verifikasi Email"
+                : "Lengkapi Profil"}
           </h1>
           <p className="mt-2 text-sm text-slate-500">
             {step === "signup" ? (
@@ -167,18 +200,44 @@ export default function RegisterPage() {
                   Masuk
                 </Link>
               </>
+            ) : step === "verify-email" ? (
+              "Kami mengirim link konfirmasi ke email Anda."
             ) : (
               "Satu langkah lagi — buat profil di backend Sinaptex."
             )}
           </p>
           {reason === "complete_profile" && step === "profile" && (
             <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">
-              Login berhasil, tapi profil Sinaptex belum ada. Isi nama lalu kirim.
+              Login berhasil di Supabase, tapi profil Sinaptex belum dibuat. Isi nama → Selesaikan
+              Pendaftaran.
             </p>
           )}
         </div>
 
-        {step === "signup" ? (
+        {step === "verify-email" && (
+          <div className="space-y-4 text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50">
+              <MailCheck className="h-7 w-7 text-[#0B2F6E]" />
+            </div>
+            <p className="text-sm text-slate-600">
+              Link verifikasi dikirim ke{" "}
+              <span className="font-semibold text-slate-900">{email}</span>. Buka email tersebut,
+              klik konfirmasi, lalu kembali ke halaman login.
+            </p>
+            <p className="text-xs text-slate-400">
+              Langkah ini mengurangi bot: akun email/password tidak aktif sebelum email dikonfirmasi
+              (atur di Supabase → Authentication → Providers → Email → Confirm email).
+            </p>
+            <Link
+              href="/login"
+              className="inline-flex rounded-xl bg-[#0B2F6E] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#082352]"
+            >
+              Ke halaman Masuk
+            </Link>
+          </div>
+        )}
+
+        {step === "signup" && (
           <form onSubmit={handleSignUp} className="space-y-4">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">Email</label>
@@ -248,7 +307,9 @@ export default function RegisterPage() {
               {loading ? "Memuat..." : "Lanjutkan"}
             </button>
           </form>
-        ) : (
+        )}
+
+        {step === "profile" && (
           <form onSubmit={handleRegisterProfile} className="space-y-4">
             {email && (
               <div>
@@ -284,14 +345,14 @@ export default function RegisterPage() {
 
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                Nomor Telepon
+                Nomor Telepon <span className="text-slate-400">(opsional)</span>
               </label>
               <div className="relative">
                 <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <input
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+62 812 3456 7890"
+                  placeholder="081234567890"
                   className={inputClass}
                 />
               </div>
