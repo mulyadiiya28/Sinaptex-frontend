@@ -20,15 +20,16 @@ function isNotRegisteredError(err: unknown): boolean {
 
 /**
  * Guard area (app).
- * - Ada profil backend → render children
- * - Ada sesi Supabase tapi belum register backend → /register
- * - Tidak ada sesi sama sekali → /login
+ * Prioritas: store.me (setelah register) > query me > redirect.
  */
 export function RequireAuth({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const meFromStore = useSessionStore((s) => s.me);
-  const { data: meFromQuery, isLoading, isError, error, isFetched } = useMe(true);
+  const { data: meFromQuery, isLoading, isError, error, isFetched } = useMe(
+    // Hanya fetch jika store belum punya profil (hindari race mengosongkan UI)
+    !meFromStore
+  );
   const me = meFromStore ?? meFromQuery ?? null;
   const [hasSupabaseSession, setHasSupabaseSession] = useState<boolean | null>(null);
 
@@ -37,61 +38,60 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(({ data }) => {
       if (alive) setHasSupabaseSession(Boolean(data.session));
     });
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_e, session) => {
+      if (alive) setHasSupabaseSession(Boolean(session));
+    });
     return () => {
       alive = false;
+      subscription.unsubscribe();
     };
   }, []);
 
   useEffect(() => {
-    if (isLoading || hasSupabaseSession === null) return;
+    // Sudah punya profil di store/query → tidak redirect
     if (me) return;
+    if (hasSupabaseSession === null) return;
+    if (isLoading) return;
 
-    if (hasSupabaseSession && (isError || isFetched)) {
-      // Sesi ada, profil backend belum → lengkapi register (bukan login ulang)
-      if (isNotRegisteredError(error) || isError || !me) {
+    if (hasSupabaseSession) {
+      // Sesi Supabase ada, belum ada profil lokal yang valid
+      if (isFetched && (isNotRegisteredError(error) || isError || !meFromQuery)) {
         router.replace(
           "/register?reason=complete_profile&step=profile&from=session"
         );
-        return;
       }
+      return;
     }
 
-    if (!hasSupabaseSession && isFetched) {
+    // Tidak ada sesi sama sekali
+    if (isFetched || hasSupabaseSession === false) {
       const redirect = encodeURIComponent(pathname || "/dashboard");
       router.replace(`/login?redirect=${redirect}`);
     }
   }, [
+    me,
+    meFromQuery,
     isLoading,
     isFetched,
     isError,
     error,
-    me,
     hasSupabaseSession,
     pathname,
     router,
   ]);
 
-  if ((isLoading || hasSupabaseSession === null) && !me) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-white via-slate-50 to-blue-50">
-        <div className="flex flex-col items-center gap-2">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-300 border-t-[#0B2F6E]" />
-          <p className="text-xs text-slate-400">Memuat sesi...</p>
-        </div>
-      </div>
-    );
+  if (me) {
+    return <>{children}</>;
   }
 
-  if (!me) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-white via-slate-50 to-blue-50">
-        <div className="flex flex-col items-center gap-2">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-300 border-t-[#0B2F6E]" />
-          <p className="text-xs text-slate-400">Mengalihkan...</p>
-        </div>
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-white via-slate-50 to-blue-50">
+      <div className="flex flex-col items-center gap-2">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-300 border-t-[#0B2F6E]" />
+        <p className="text-xs text-slate-400">Memuat sesi...</p>
       </div>
-    );
-  }
-
-  return <>{children}</>;
+    </div>
+  );
 }

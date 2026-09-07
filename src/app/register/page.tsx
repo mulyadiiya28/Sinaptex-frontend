@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase-client";
@@ -16,6 +16,8 @@ export default function RegisterPage() {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const setMe = useSessionStore((s) => s.setMe);
+  const me = useSessionStore((s) => s.me);
+  const submittingRef = useRef(false);
 
   const reason = searchParams.get("reason");
   const stepParam = searchParams.get("step");
@@ -34,7 +36,13 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Ambil email + nama dari sesi Supabase (Google / session existing)
+  // Jika sudah punya profil di store → dashboard (tanpa loop: hanya sekali)
+  useEffect(() => {
+    if (me?.id && !submittingRef.current) {
+      router.replace("/dashboard");
+    }
+  }, [me, router]);
+
   useEffect(() => {
     if (step !== "profile") return;
     supabase.auth.getSession().then(({ data }) => {
@@ -44,12 +52,10 @@ export default function RegisterPage() {
       const metaName =
         (user.user_metadata?.full_name as string | undefined) ||
         (user.user_metadata?.name as string | undefined);
-      if (metaName && !fullName) setFullName(metaName);
+      if (metaName) setFullName((prev) => prev || metaName);
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
 
-  // complete_profile tanpa sesi → login dulu
   useEffect(() => {
     if (reason !== "complete_profile") return;
     supabase.auth.getSession().then(({ data }) => {
@@ -91,22 +97,46 @@ export default function RegisterPage() {
 
   async function handleRegisterProfile(e: React.FormEvent) {
     e.preventDefault();
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setLoading(true);
     setError("");
 
     try {
+      // Pastikan token Supabase siap
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session?.access_token) {
+        throw new Error("Sesi login tidak ditemukan. Silakan login ulang.");
+      }
+
       const profile = await authApi.register({
-        fullName,
-        phone: phone || undefined,
+        fullName: fullName.trim(),
+        phone: phone.trim() || undefined,
       });
 
-      // Simpan sesi lokal agar RequireAuth / dashboard langsung lolos
-      setMe(profile);
-      queryClient.setQueryData(authKeys.me, profile);
+      if (!profile || !profile.id) {
+        // Beberapa backend mengembalikan envelope kosong — coba /auth/me
+        const verified = await authApi.me();
+        setMe(verified);
+        queryClient.setQueryData(authKeys.me, verified);
+      } else {
+        setMe(profile);
+        queryClient.setQueryData(authKeys.me, profile);
+        // Best-effort sync dengan /auth/me
+        try {
+          const verified = await authApi.me();
+          setMe(verified);
+          queryClient.setQueryData(authKeys.me, verified);
+        } catch {
+          // tetap pakai hasil register
+        }
+      }
 
       router.replace("/dashboard");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Gagal mendaftar");
+      submittingRef.current = false;
+      const msg = err instanceof Error ? err.message : "Gagal mendaftar";
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -137,15 +167,13 @@ export default function RegisterPage() {
                   Masuk
                 </Link>
               </>
-            ) : fromGoogle || reason === "complete_profile" ? (
-              "Satu langkah lagi! Lengkapi data profil di backend Sinaptex."
             ) : (
-              "Hampir selesai! Lengkapi data profil Anda."
+              "Satu langkah lagi — buat profil di backend Sinaptex."
             )}
           </p>
           {reason === "complete_profile" && step === "profile" && (
             <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">
-              Akun Google/Supabase sudah masuk, tapi profil Sinaptex belum dibuat. Isi form di bawah.
+              Login berhasil, tapi profil Sinaptex belum ada. Isi nama lalu kirim.
             </p>
           )}
         </div>
@@ -246,8 +274,9 @@ export default function RegisterPage() {
                 <input
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  placeholder="John Doe"
+                  placeholder="Nama lengkap Anda"
                   required
+                  minLength={2}
                   className={inputClass}
                 />
               </div>
@@ -278,18 +307,8 @@ export default function RegisterPage() {
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#FF6B00] px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-orange-600 disabled:opacity-50"
             >
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-              {loading ? "Memuat..." : "Selesaikan Pendaftaran"}
+              {loading ? "Menyimpan profil..." : "Selesaikan Pendaftaran"}
             </button>
-
-            {!fromGoogle && reason !== "complete_profile" && (
-              <button
-                type="button"
-                onClick={() => setStep("signup")}
-                className="w-full text-center text-sm text-slate-500 hover:text-slate-700"
-              >
-                ← Kembali
-              </button>
-            )}
           </form>
         )}
       </div>

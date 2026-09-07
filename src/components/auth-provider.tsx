@@ -44,7 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let mounted = true;
     const safetyTimer = setTimeout(() => {
       if (mounted) setReady(true);
-    }, 1500);
+    }, 2000);
 
     async function handleSession(session: Session | null) {
       if (!session) {
@@ -65,6 +65,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!mounted) return;
 
         const msg = err instanceof Error ? err.message : String(err || "");
+        const existingMe = useSessionStore.getState().me;
+
+        // Profil baru saja di-set lewat /auth/register — jangan dihapus & jangan bounce
+        if (existingMe) {
+          console.warn(
+            "[AuthProvider] /auth/me gagal tapi store.me ada — tetap pakai profil lokal:",
+            msg
+          );
+          return;
+        }
 
         if (isNotRegisteredError(msg)) {
           setMe(null);
@@ -76,10 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             (p) => path === p || path.startsWith(`${p}?`) || path.startsWith(`${p}/`)
           );
 
-          // Sudah di halaman lengkapi profil / login → jangan redirect lagi (hindari loop + spam log)
-          if (onPublicAuth) {
-            return;
-          }
+          if (onPublicAuth) return;
 
           if (!redirectingRef.current) {
             redirectingRef.current = true;
@@ -94,9 +101,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         console.warn("[AuthProvider] Failed fetching me profile:", err);
-        setMe(null);
-        queryClient.removeQueries({ queryKey: authKeys.me });
-        disconnectSocket();
+        // Jangan hapus me jika ada; hanya clear jika benar-benar kosong
+        if (!existingMe) {
+          setMe(null);
+          queryClient.removeQueries({ queryKey: authKeys.me });
+          disconnectSocket();
+        }
       }
     }
 
@@ -118,8 +128,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
+      // Hindari race: INITIAL_SESSION / TOKEN_REFRESHED jangan override register yang baru
+      if (event === "TOKEN_REFRESHED" && useSessionStore.getState().me) {
+        return;
+      }
       await handleSession(session);
     });
 
@@ -128,7 +142,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       clearTimeout(safetyTimer);
       subscription.unsubscribe();
     };
-    // sengaja TIDAK depend pathname — pakai pathnameRef agar tidak resubscribe tiap navigasi
   }, [queryClient, setMe, router]);
 
   if (!ready) {
