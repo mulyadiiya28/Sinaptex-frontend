@@ -17,7 +17,7 @@ function friendlyAuthError(msg: string): string {
     m.includes("account not registered locally") ||
     m.includes("complete registration")
   ) {
-    return "Akun belum terdaftar di Sinaptex. Isi nama lengkap lalu klik Selesaikan Pendaftaran (bukan login ulang).";
+    return "Akun belum terdaftar di Sinaptex. Isi nama lengkap lalu klik Selesaikan Pendaftaran.";
   }
   if (m.includes("email not confirmed") || m.includes("confirm")) {
     return "Email belum diverifikasi. Cek kotak masuk / spam, buka link konfirmasi, lalu login lagi.";
@@ -72,14 +72,18 @@ export default function RegisterPage() {
     });
   }, [step]);
 
-  useEffect(() => {
-    if (reason !== "complete_profile") return;
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) {
-        router.replace("/login?redirect=/register?reason=complete_profile&step=profile");
-      }
-    });
-  }, [reason, router]);
+  async function handleSkipToHome() {
+    // Opsional: keluar dari sesi setengah jadi agar tidak terus dianggap login
+    // User bisa pilih tetap simpan sesi Supabase dan hanya ke beranda
+    router.replace("/");
+  }
+
+  async function handleSignOutAndHome() {
+    await supabase.auth.signOut();
+    setMe(null);
+    queryClient.removeQueries({ queryKey: authKeys.me });
+    router.replace("/");
+  }
 
   async function handleSignUp(e: React.FormEvent) {
     e.preventDefault();
@@ -110,7 +114,6 @@ export default function RegisterPage() {
       return;
     }
 
-    // Supabase: jika "Confirm email" aktif, session null sampai user klik link email
     if (!data.session) {
       setStep("verify-email");
       setLoading(false);
@@ -208,8 +211,8 @@ export default function RegisterPage() {
           </p>
           {reason === "complete_profile" && step === "profile" && (
             <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">
-              Login berhasil di Supabase, tapi profil Sinaptex belum dibuat. Isi nama → Selesaikan
-              Pendaftaran.
+              Login berhasil, profil Sinaptex belum ada. Isi nama lalu Selesaikan, atau lewati ke
+              beranda dulu.
             </p>
           )}
         </div>
@@ -221,12 +224,7 @@ export default function RegisterPage() {
             </div>
             <p className="text-sm text-slate-600">
               Link verifikasi dikirim ke{" "}
-              <span className="font-semibold text-slate-900">{email}</span>. Buka email tersebut,
-              klik konfirmasi, lalu kembali ke halaman login.
-            </p>
-            <p className="text-xs text-slate-400">
-              Langkah ini mengurangi bot: akun email/password tidak aktif sebelum email dikonfirmasi
-              (atur di Supabase → Authentication → Providers → Email → Confirm email).
+              <span className="font-semibold text-slate-900">{email}</span>.
             </p>
             <Link
               href="/login"
@@ -370,6 +368,25 @@ export default function RegisterPage() {
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
               {loading ? "Menyimpan profil..." : "Selesaikan Pendaftaran"}
             </button>
+
+            {(reason === "complete_profile" || fromGoogle) && (
+              <div className="flex flex-col gap-2 border-t border-slate-100 pt-4">
+                <button
+                  type="button"
+                  onClick={handleSkipToHome}
+                  className="w-full text-center text-sm font-medium text-slate-600 hover:text-[#0B2F6E]"
+                >
+                  Lewati dulu — ke beranda
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSignOutAndHome}
+                  className="w-full text-center text-xs text-slate-400 hover:text-red-600"
+                >
+                  Keluar dari sesi ini & ke beranda
+                </button>
+              </div>
+            )}
           </form>
         )}
       </div>

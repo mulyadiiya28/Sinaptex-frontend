@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase-client";
@@ -9,7 +9,6 @@ import { authKeys } from "@/features/auth/auth.hooks";
 import { authApi } from "@/features/auth/auth.api";
 import { useNotificationSocket } from "@/features/notification/use-notification-socket";
 import { disconnectSocket } from "@/lib/socket-client";
-import { useRouter, usePathname } from "next/navigation";
 
 function isNotRegisteredError(msg: string): boolean {
   const m = msg.toLowerCase();
@@ -23,20 +22,15 @@ function isNotRegisteredError(msg: string): boolean {
   );
 }
 
-const AUTH_PUBLIC_PATHS = ["/login", "/register", "/auth/callback"];
-
+/**
+ * Menyinkronkan sesi Supabase ↔ profil backend.
+ * TIDAK me-redirect ke /register — itu tugas RequireAuth di area (app) saja,
+ * supaya buka beranda (/) tidak dipaksa lengkapi profil.
+ */
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
   const setMe = useSessionStore((s) => s.setMe);
   const [ready, setReady] = useState(false);
-  const router = useRouter();
-  const pathname = usePathname();
-  const pathnameRef = useRef(pathname);
-  const redirectingRef = useRef(false);
-
-  useEffect(() => {
-    pathnameRef.current = pathname;
-  }, [pathname]);
 
   useNotificationSocket();
 
@@ -51,7 +45,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setMe(null);
         queryClient.removeQueries({ queryKey: authKeys.me });
         disconnectSocket();
-        redirectingRef.current = false;
         return;
       }
 
@@ -60,14 +53,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!mounted) return;
         setMe(me);
         queryClient.setQueryData(authKeys.me, me);
-        redirectingRef.current = false;
       } catch (err: unknown) {
         if (!mounted) return;
 
         const msg = err instanceof Error ? err.message : String(err || "");
         const existingMe = useSessionStore.getState().me;
 
-        // Profil baru saja di-set lewat /auth/register — jangan dihapus & jangan bounce
+        // Profil sudah di-set (mis. baru register) — jangan dihapus
         if (existingMe) {
           console.warn(
             "[AuthProvider] /auth/me gagal tapi store.me ada — tetap pakai profil lokal:",
@@ -76,37 +68,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
+        // Belum register lokal: biarkan me = null.
+        // Redirect hanya dilakukan RequireAuth saat user buka /dashboard dll.
         if (isNotRegisteredError(msg)) {
+          console.info(
+            "[AuthProvider] Sesi Supabase ada, profil Sinaptex belum. Tidak auto-redirect."
+          );
           setMe(null);
           queryClient.removeQueries({ queryKey: authKeys.me });
           disconnectSocket();
-
-          const path = pathnameRef.current || "";
-          const onPublicAuth = AUTH_PUBLIC_PATHS.some(
-            (p) => path === p || path.startsWith(`${p}?`) || path.startsWith(`${p}/`)
-          );
-
-          if (onPublicAuth) return;
-
-          if (!redirectingRef.current) {
-            redirectingRef.current = true;
-            console.warn(
-              "[AuthProvider] User not registered in backend, redirecting to register"
-            );
-            router.replace(
-              "/register?reason=complete_profile&step=profile&from=session"
-            );
-          }
           return;
         }
 
         console.warn("[AuthProvider] Failed fetching me profile:", err);
-        // Jangan hapus me jika ada; hanya clear jika benar-benar kosong
-        if (!existingMe) {
-          setMe(null);
-          queryClient.removeQueries({ queryKey: authKeys.me });
-          disconnectSocket();
-        }
+        setMe(null);
+        queryClient.removeQueries({ queryKey: authKeys.me });
+        disconnectSocket();
       }
     }
 
@@ -130,7 +107,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
-      // Hindari race: INITIAL_SESSION / TOKEN_REFRESHED jangan override register yang baru
       if (event === "TOKEN_REFRESHED" && useSessionStore.getState().me) {
         return;
       }
@@ -142,7 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       clearTimeout(safetyTimer);
       subscription.unsubscribe();
     };
-  }, [queryClient, setMe, router]);
+  }, [queryClient, setMe]);
 
   if (!ready) {
     return (
