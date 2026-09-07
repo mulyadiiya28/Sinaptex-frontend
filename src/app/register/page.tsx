@@ -2,8 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase-client";
 import { authApi } from "@/features/auth/auth.api";
+import { authKeys } from "@/features/auth/auth.hooks";
+import { useSessionStore } from "@/store/use-session-store";
 import { User, Mail, Lock, Phone, Eye, EyeOff, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { SinaptexLogo } from "@/components/sinaptex-logo";
@@ -11,12 +14,16 @@ import { SinaptexLogo } from "@/components/sinaptex-logo";
 export default function RegisterPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
+  const setMe = useSessionStore((s) => s.setMe);
+
   const reason = searchParams.get("reason");
   const stepParam = searchParams.get("step");
-  const fromGoogle = searchParams.get("from") === "google";
+  const fromGoogle =
+    searchParams.get("from") === "google" || searchParams.get("from") === "session";
 
   const [step, setStep] = useState<"signup" | "profile">(
-    stepParam === "profile" ? "profile" : "signup"
+    stepParam === "profile" || reason === "complete_profile" ? "profile" : "signup"
   );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -27,15 +34,30 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Ambil email + nama dari sesi Supabase (Google / session existing)
   useEffect(() => {
-    if (fromGoogle && step === "profile") {
-      supabase.auth.getSession().then(({ data }) => {
-        if (data.session?.user?.email) {
-          setEmail(data.session.user.email);
-        }
-      });
-    }
-  }, [fromGoogle, step]);
+    if (step !== "profile") return;
+    supabase.auth.getSession().then(({ data }) => {
+      const user = data.session?.user;
+      if (!user) return;
+      if (user.email) setEmail(user.email);
+      const metaName =
+        (user.user_metadata?.full_name as string | undefined) ||
+        (user.user_metadata?.name as string | undefined);
+      if (metaName && !fullName) setFullName(metaName);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
+
+  // complete_profile tanpa sesi → login dulu
+  useEffect(() => {
+    if (reason !== "complete_profile") return;
+    supabase.auth.getSession().then(({ data }) => {
+      if (!data.session) {
+        router.replace("/login?redirect=/register?reason=complete_profile&step=profile");
+      }
+    });
+  }, [reason, router]);
 
   async function handleSignUp(e: React.FormEvent) {
     e.preventDefault();
@@ -73,11 +95,16 @@ export default function RegisterPage() {
     setError("");
 
     try {
-      await authApi.register({
+      const profile = await authApi.register({
         fullName,
         phone: phone || undefined,
       });
-      router.push("/dashboard");
+
+      // Simpan sesi lokal agar RequireAuth / dashboard langsung lolos
+      setMe(profile);
+      queryClient.setQueryData(authKeys.me, profile);
+
+      router.replace("/dashboard");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Gagal mendaftar");
     } finally {
@@ -92,8 +119,14 @@ export default function RegisterPage() {
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-white via-slate-50 to-blue-50 px-4">
       <div className="w-full max-w-md space-y-6 rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
         <div className="flex flex-col items-center text-center">
-          <SinaptexLogo variant="vertical" size="md" showTagline />
-          <h1 className="mt-4 text-2xl font-bold tracking-tight text-[#0B2F6E]">
+          <SinaptexLogo
+            variant="horizontal"
+            size="md"
+            showTagline
+            responsiveCollapse={false}
+            taglineText="Ekosistem Bisnis Dan Layanan Cerdas"
+          />
+          <h1 className="mt-6 text-2xl font-bold tracking-tight text-[#0B2F6E]">
             {step === "signup" ? "Buat Akun Sinaptex" : "Lengkapi Profil"}
           </h1>
           <p className="mt-2 text-sm text-slate-500">
@@ -104,15 +137,15 @@ export default function RegisterPage() {
                   Masuk
                 </Link>
               </>
-            ) : fromGoogle ? (
-              "Satu langkah lagi! Lengkapi data profil Anda."
+            ) : fromGoogle || reason === "complete_profile" ? (
+              "Satu langkah lagi! Lengkapi data profil di backend Sinaptex."
             ) : (
               "Hampir selesai! Lengkapi data profil Anda."
             )}
           </p>
           {reason === "complete_profile" && step === "profile" && (
             <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">
-              Silakan lengkapi pendaftaran untuk melanjutkan.
+              Akun Google/Supabase sudah masuk, tapi profil Sinaptex belum dibuat. Isi form di bawah.
             </p>
           )}
         </div>
@@ -189,7 +222,7 @@ export default function RegisterPage() {
           </form>
         ) : (
           <form onSubmit={handleRegisterProfile} className="space-y-4">
-            {fromGoogle && email && (
+            {email && (
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-slate-700">Email</label>
                 <div className="relative">
@@ -248,7 +281,7 @@ export default function RegisterPage() {
               {loading ? "Memuat..." : "Selesaikan Pendaftaran"}
             </button>
 
-            {!fromGoogle && (
+            {!fromGoogle && reason !== "complete_profile" && (
               <button
                 type="button"
                 onClick={() => setStep("signup")}
