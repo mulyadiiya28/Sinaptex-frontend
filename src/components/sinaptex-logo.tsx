@@ -23,7 +23,6 @@ export function SinaptexIcon({
   full = false,
 }: SinaptexIconProps) {
   if (full) {
-    // Full lockup ~600x160 aspect
     const h = size;
     const w = Math.round(size * (600 / 160));
     return (
@@ -58,6 +57,14 @@ interface SinaptexLogoProps {
   className?: string;
   iconClassName?: string;
   theme?: "auto" | "dark" | "light";
+  /**
+   * Responsive collapse (default true):
+   * - &lt; sm  : icon saja (brand + motto hidden)
+   * - sm–lg : icon + brand (motto hidden)
+   * - ≥ lg  : icon + brand + motto
+   * Set false untuk selalu tampil penuh (login/register).
+   */
+  responsiveCollapse?: boolean;
 }
 
 /**
@@ -73,6 +80,7 @@ export function SinaptexLogo({
   className = "",
   iconClassName = "",
   theme = "auto",
+  responsiveCollapse = true,
 }: SinaptexLogoProps) {
   const sizeConfig = {
     xs: {
@@ -126,6 +134,10 @@ export function SinaptexLogo({
       ? showTagline
       : variant === "horizontal" || variant === "vertical" || variant === "badge";
 
+  // Progressive hide: brand from sm+, tagline from lg+
+  const brandVisibility = responsiveCollapse ? "hidden sm:block" : "";
+  const taglineVisibility = responsiveCollapse ? "hidden lg:block" : "";
+
   if (variant === "icon-only") {
     return (
       <SinaptexIcon
@@ -135,7 +147,6 @@ export function SinaptexLogo({
     );
   }
 
-  // Satu file SVG yang sudah berisi icon + brand + tagline
   if (variant === "full-image") {
     return (
       <SinaptexIcon
@@ -147,13 +158,13 @@ export function SinaptexLogo({
   }
 
   const textBlock = (
-    <div className="flex min-w-0 flex-col justify-center">
+    <div className={`min-w-0 flex-col justify-center ${brandVisibility} sm:flex`}>
       <span className={`${sizeConfig.titleClass} ${titleColor} leading-none`}>
         Sinaptex
       </span>
       {isTaglineVisible && (
         <span
-          className={`mt-0.5 ${sizeConfig.taglineClass} ${tagColor} font-medium`}
+          className={`mt-0.5 ${sizeConfig.taglineClass} ${tagColor} font-medium ${taglineVisibility}`}
         >
           {taglineText}
         </span>
@@ -161,12 +172,13 @@ export function SinaptexLogo({
     </div>
   );
 
-  // Icon kiri, brand + tagline kanan (di bawah brand)
   if (variant === "compact") {
     return (
       <div className={`flex items-center ${sizeConfig.spacing} ${className}`}>
         <SinaptexIcon size={sizeConfig.iconSize} className={iconClassName} />
-        <span className={`${sizeConfig.titleClass} ${titleColor} leading-none`}>
+        <span
+          className={`${sizeConfig.titleClass} ${titleColor} leading-none ${brandVisibility}`}
+        >
           Sinaptex
         </span>
       </div>
@@ -185,19 +197,18 @@ export function SinaptexLogo({
   }
 
   if (variant === "vertical") {
-    // Icon di atas, teks di bawah (tetap brand lalu tagline)
     return (
       <div
         className={`flex flex-col items-center text-center ${sizeConfig.spacing} ${className}`}
       >
         <SinaptexIcon size={sizeConfig.iconSize} className={iconClassName} />
-        <div className="flex flex-col items-center">
+        <div className={`flex-col items-center ${brandVisibility} sm:flex`}>
           <span className={`${sizeConfig.titleClass} ${titleColor} leading-none`}>
             Sinaptex
           </span>
           {isTaglineVisible && (
             <span
-              className={`mt-1 max-w-[14rem] ${sizeConfig.taglineClass} ${tagColor} font-medium`}
+              className={`mt-1 max-w-[14rem] ${sizeConfig.taglineClass} ${tagColor} font-medium ${taglineVisibility}`}
             >
               {taglineText}
             </span>
@@ -207,7 +218,7 @@ export function SinaptexLogo({
     );
   }
 
-  // horizontal (default): [ICON] Brand / Tagline di kanan
+  // horizontal (default)
   return (
     <div className={`flex items-center ${sizeConfig.spacing} ${className}`}>
       <SinaptexIcon size={sizeConfig.iconSize} className={iconClassName} />
