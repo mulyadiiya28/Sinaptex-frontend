@@ -1,71 +1,57 @@
 "use client";
 
-import React from "react";
+import Image from "next/image";
+
+/** Path ke mark resmi di public/icons */
+const LOGO_ICON_SRC = "/icons/icon-192x192.svg";
+/** Full lockup (icon + text) bila dibutuhkan sebagai satu gambar */
+const LOGO_FULL_SRC = "/icons/sinaptex-logo.svg";
+
+const DEFAULT_TAGLINE = "Ekosistem Bisnis Dan Layanan Cerdas";
 
 interface SinaptexIconProps {
-  size?: number | string;
+  size?: number;
   className?: string;
-  idPrefix?: string;
+  /** Gunakan full SVG lockup dari public (sudah berisi teks) */
+  full?: boolean;
 }
 
-/**
- * Brand mark: interlocking S (teal + orange) — Sinaptex
- */
+/** Icon mark dari public/icons */
 export function SinaptexIcon({
   size = 32,
   className = "",
-  idPrefix = "sx",
+  full = false,
 }: SinaptexIconProps) {
-  const gradId = `${idPrefix}-grad`;
+  if (full) {
+    // Full lockup ~600x160 aspect
+    const h = size;
+    const w = Math.round(size * (600 / 160));
+    return (
+      <Image
+        src={LOGO_FULL_SRC}
+        alt="Sinaptex"
+        width={w}
+        height={h}
+        className={`shrink-0 object-contain ${className}`}
+        priority
+      />
+    );
+  }
 
   return (
-    <svg
+    <Image
+      src={LOGO_ICON_SRC}
+      alt="Sinaptex"
       width={size}
       height={size}
-      viewBox="0 0 64 56"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={`shrink-0 ${className}`}
-      aria-label="Logo Sinaptex"
-    >
-      <defs>
-        <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#0B2F6E" />
-          <stop offset="45%" stopColor="#0EA5E9" />
-          <stop offset="100%" stopColor="#FF6B00" />
-        </linearGradient>
-      </defs>
-      {/* Upper loop — teal/blue */}
-      <path
-        d="M48 14C48 8 42 4 32 4C20 4 14 10 14 18C14 26 22 30 32 32C44 34 50 40 50 48C50 56 42 60 30 60"
-        stroke="#0EA5E9"
-        strokeWidth="7"
-        strokeLinecap="round"
-        fill="none"
-      />
-      {/* Lower loop — orange */}
-      <path
-        d="M16 42C16 48 22 52 32 52C44 52 50 46 50 38C50 30 42 26 32 24C20 22 14 16 14 8C14 0 22 -4 34 -4"
-        stroke="#FF6B00"
-        strokeWidth="7"
-        strokeLinecap="round"
-        fill="none"
-        opacity="0.95"
-      />
-      {/* Simplified continuous S mark */}
-      <path
-        d="M44 12C44 7 38 4 30 4C20 4 14 9 14 16C14 24 22 28 32 30C42 32 50 37 50 46C50 53 43 56 34 56C24 56 18 51 18 44"
-        stroke={`url(#${gradId})`}
-        strokeWidth="8"
-        strokeLinecap="round"
-        fill="none"
-      />
-    </svg>
+      className={`shrink-0 rounded-lg object-contain ${className}`}
+      priority
+    />
   );
 }
 
 interface SinaptexLogoProps {
-  variant?: "horizontal" | "vertical" | "compact" | "icon-only" | "badge";
+  variant?: "horizontal" | "vertical" | "compact" | "icon-only" | "badge" | "full-image";
   size?: "xs" | "sm" | "md" | "lg" | "xl";
   showTagline?: boolean;
   taglineText?: string;
@@ -74,44 +60,49 @@ interface SinaptexLogoProps {
   theme?: "auto" | "dark" | "light";
 }
 
+/**
+ * Layout default (horizontal):
+ *   [ICON]  Sinaptex
+ *           Ekosistem Bisnis Dan Layanan Cerdas
+ */
 export function SinaptexLogo({
   variant = "horizontal",
   size = "md",
   showTagline,
-  taglineText = "Ekosistem bisnis dan layanan cerdas",
+  taglineText = DEFAULT_TAGLINE,
   className = "",
   iconClassName = "",
   theme = "auto",
 }: SinaptexLogoProps) {
   const sizeConfig = {
     xs: {
-      iconSize: 22,
-      titleClass: "text-sm font-bold tracking-tight",
-      taglineClass: "text-[9px] tracking-normal",
-      spacing: "gap-1.5",
-    },
-    sm: {
       iconSize: 28,
-      titleClass: "text-base font-bold tracking-tight",
-      taglineClass: "text-[10px] tracking-normal",
+      titleClass: "text-sm font-bold tracking-tight",
+      taglineClass: "text-[9px] leading-tight",
       spacing: "gap-2",
     },
-    md: {
+    sm: {
       iconSize: 36,
-      titleClass: "text-xl font-bold tracking-tight",
-      taglineClass: "text-xs tracking-normal",
+      titleClass: "text-base font-bold tracking-tight",
+      taglineClass: "text-[10px] leading-tight",
       spacing: "gap-2.5",
     },
+    md: {
+      iconSize: 44,
+      titleClass: "text-xl font-bold tracking-tight",
+      taglineClass: "text-xs leading-tight",
+      spacing: "gap-3",
+    },
     lg: {
-      iconSize: 48,
-      titleClass: "text-2xl sm:text-3xl font-extrabold tracking-tight",
-      taglineClass: "text-xs sm:text-sm tracking-normal",
+      iconSize: 56,
+      titleClass: "text-2xl font-extrabold tracking-tight",
+      taglineClass: "text-sm leading-tight",
       spacing: "gap-3.5",
     },
     xl: {
-      iconSize: 64,
-      titleClass: "text-3xl sm:text-4xl font-black tracking-tight",
-      taglineClass: "text-sm sm:text-base tracking-normal",
+      iconSize: 72,
+      titleClass: "text-3xl font-black tracking-tight",
+      taglineClass: "text-base leading-tight",
       spacing: "gap-4",
     },
   }[size];
@@ -120,20 +111,20 @@ export function SinaptexLogo({
     theme === "light"
       ? "text-[#0B2F6E]"
       : theme === "dark"
-      ? "text-white"
-      : "text-[#0B2F6E] dark:text-white";
+        ? "text-white"
+        : "text-[#0B2F6E] dark:text-white";
 
   const tagColor =
     theme === "light"
       ? "text-slate-500"
       : theme === "dark"
-      ? "text-slate-400"
-      : "text-slate-500 dark:text-slate-400";
+        ? "text-slate-400"
+        : "text-slate-500 dark:text-slate-400";
 
   const isTaglineVisible =
     showTagline !== undefined
       ? showTagline
-      : variant === "horizontal" || variant === "vertical";
+      : variant === "horizontal" || variant === "vertical" || variant === "badge";
 
   if (variant === "icon-only") {
     return (
@@ -144,53 +135,33 @@ export function SinaptexLogo({
     );
   }
 
-  if (variant === "badge") {
+  // Satu file SVG yang sudah berisi icon + brand + tagline
+  if (variant === "full-image") {
     return (
-      <div
-        className={`flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white/90 p-3 shadow-sm backdrop-blur ${className}`}
-      >
-        <div className="flex items-center justify-center rounded-xl bg-gradient-to-br from-[#0B2F6E] to-[#FF6B00] p-2 shadow-inner">
-          <SinaptexIcon size={sizeConfig.iconSize} className={iconClassName} />
-        </div>
-        <div className="flex flex-col">
-          <span className={`${sizeConfig.titleClass} ${titleColor} leading-none`}>
-            Sinaptex
-          </span>
-          {isTaglineVisible && (
-            <span className={`mt-1 ${sizeConfig.taglineClass} ${tagColor} font-medium leading-tight`}>
-              {taglineText}
-            </span>
-          )}
-        </div>
-      </div>
+      <SinaptexIcon
+        full
+        size={sizeConfig.iconSize}
+        className={iconClassName || className}
+      />
     );
   }
 
-  if (variant === "vertical") {
-    return (
-      <div
-        className={`flex flex-col items-center text-center ${sizeConfig.spacing} ${className}`}
-      >
-        <SinaptexIcon
-          size={sizeConfig.iconSize}
-          className={`relative ${iconClassName}`}
-        />
-        <div className="flex flex-col items-center">
-          <span className={`${sizeConfig.titleClass} ${titleColor} leading-tight`}>
-            Sinaptex
-          </span>
-          {isTaglineVisible && (
-            <span
-              className={`mt-1 max-w-xs font-medium ${sizeConfig.taglineClass} ${tagColor} leading-snug`}
-            >
-              {taglineText}
-            </span>
-          )}
-        </div>
-      </div>
-    );
-  }
+  const textBlock = (
+    <div className="flex min-w-0 flex-col justify-center">
+      <span className={`${sizeConfig.titleClass} ${titleColor} leading-none`}>
+        Sinaptex
+      </span>
+      {isTaglineVisible && (
+        <span
+          className={`mt-0.5 ${sizeConfig.taglineClass} ${tagColor} font-medium`}
+        >
+          {taglineText}
+        </span>
+      )}
+    </div>
+  );
 
+  // Icon kiri, brand + tagline kanan (di bawah brand)
   if (variant === "compact") {
     return (
       <div className={`flex items-center ${sizeConfig.spacing} ${className}`}>
@@ -202,23 +173,45 @@ export function SinaptexLogo({
     );
   }
 
+  if (variant === "badge") {
+    return (
+      <div
+        className={`flex items-center ${sizeConfig.spacing} rounded-2xl border border-slate-200/80 bg-white/90 p-3 shadow-sm backdrop-blur ${className}`}
+      >
+        <SinaptexIcon size={sizeConfig.iconSize} className={iconClassName} />
+        {textBlock}
+      </div>
+    );
+  }
+
+  if (variant === "vertical") {
+    // Icon di atas, teks di bawah (tetap brand lalu tagline)
+    return (
+      <div
+        className={`flex flex-col items-center text-center ${sizeConfig.spacing} ${className}`}
+      >
+        <SinaptexIcon size={sizeConfig.iconSize} className={iconClassName} />
+        <div className="flex flex-col items-center">
+          <span className={`${sizeConfig.titleClass} ${titleColor} leading-none`}>
+            Sinaptex
+          </span>
+          {isTaglineVisible && (
+            <span
+              className={`mt-1 max-w-[14rem] ${sizeConfig.taglineClass} ${tagColor} font-medium`}
+            >
+              {taglineText}
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // horizontal (default): [ICON] Brand / Tagline di kanan
   return (
     <div className={`flex items-center ${sizeConfig.spacing} ${className}`}>
-      <div className="relative shrink-0">
-        <SinaptexIcon size={sizeConfig.iconSize} className={iconClassName} />
-      </div>
-      <div className="flex min-w-0 flex-col">
-        <span className={`${sizeConfig.titleClass} ${titleColor} leading-tight truncate`}>
-          Sinaptex
-        </span>
-        {isTaglineVisible && (
-          <span
-            className={`${sizeConfig.taglineClass} ${tagColor} font-medium leading-tight truncate`}
-          >
-            {taglineText}
-          </span>
-        )}
-      </div>
+      <SinaptexIcon size={sizeConfig.iconSize} className={iconClassName} />
+      {textBlock}
     </div>
   );
 }
