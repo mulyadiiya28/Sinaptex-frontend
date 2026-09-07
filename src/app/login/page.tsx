@@ -63,6 +63,7 @@ export default function LoginPage() {
             variant="horizontal"
             size="md"
             showTagline
+            responsiveCollapse={false}
             taglineText="Ekosistem Bisnis Dan Layanan Cerdas"
           />
           <h1 className="mt-6 text-2xl font-bold tracking-tight text-[#0B2F6E]">
