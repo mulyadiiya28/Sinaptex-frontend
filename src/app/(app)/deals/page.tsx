@@ -11,10 +11,14 @@ import {
   Star,
   MessageSquare,
   AlertCircle,
+  ShieldCheck,
+  Loader2,
 } from "lucide-react";
 import { useDeals, useUpdateDealStatus } from "@/features/deal/deal.hooks";
 import { useCreateReview } from "@/features/review/review.hooks";
 import { Deal, DealStatus } from "@/features/deal/deal.schema";
+import { useMyParties } from "@/features/party/party.hooks";
+import { useInitiateEscrowHold } from "@/features/escrow/escrow.hooks";
 
 // ✅ Fix: Type-safe status badge mapping
 const statusFilterTabs: { label: string; status?: DealStatus | "CANCELLED_OR_EXPIRED" }[] = [
@@ -48,6 +52,67 @@ export default function DealsPage() {
   const [comment, setComment] = useState("");
   const [reviewSuccessMsg, setReviewSuccessMsg] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+
+  // Escrow modal state (trigger manual dari Deal — lihat handleInitiateEscrow)
+  const [escrowDeal, setEscrowDeal] = useState<Deal | null>(null);
+  const [escrowRole, setEscrowRole] = useState<"BUYER" | "SELLER">("BUYER");
+  const [myPartyId, setMyPartyId] = useState("");
+  const [counterpartyId, setCounterpartyId] = useState("");
+  const [escrowAmount, setEscrowAmount] = useState("");
+  const [escrowNotes, setEscrowNotes] = useState("");
+  const [escrowError, setEscrowError] = useState<string | null>(null);
+  const [escrowSuccessMsg, setEscrowSuccessMsg] = useState<string | null>(null);
+  const { data: myParties } = useMyParties();
+  const initiateEscrow = useInitiateEscrowHold();
+
+  function openEscrowModal(deal: Deal) {
+    setEscrowDeal(deal);
+    setEscrowRole("BUYER");
+    setMyPartyId(myParties?.[0]?.id ?? "");
+    setCounterpartyId("");
+    setEscrowAmount("");
+    setEscrowNotes("");
+    setEscrowError(null);
+  }
+
+  async function handleInitiateEscrow(e: React.FormEvent) {
+    e.preventDefault();
+    if (!escrowDeal) return;
+    setEscrowError(null);
+
+    const amountNum = Number(escrowAmount);
+    if (!myPartyId) {
+      setEscrowError("Pilih Party kamu terlebih dahulu.");
+      return;
+    }
+    if (!counterpartyId.trim()) {
+      setEscrowError("Isi Party ID pihak lawan transaksi.");
+      return;
+    }
+    if (!amountNum || amountNum <= 0) {
+      setEscrowError("Jumlah dana harus lebih dari 0.");
+      return;
+    }
+
+    const buyerPartyId = escrowRole === "BUYER" ? myPartyId : counterpartyId.trim();
+    const sellerPartyId = escrowRole === "BUYER" ? counterpartyId.trim() : myPartyId;
+
+    try {
+      await initiateEscrow.mutateAsync({
+        buyerPartyId,
+        sellerPartyId,
+        amount: amountNum,
+        dealId: escrowDeal.id,
+        notes: escrowNotes.trim() || undefined,
+      });
+      setEscrowSuccessMsg(
+        `Escrow untuk Deal #${escrowDeal.id.slice(0, 8)} berhasil dibuat — dana sudah ditahan (HELD). Lihat & kelola di halaman Escrow.`
+      );
+      setEscrowDeal(null);
+    } catch (err) {
+      setEscrowError(err instanceof Error ? err.message : "Gagal membuat escrow.");
+    }
+  }
 
   // ✅ Fix: Local optimistic state untuk deal status (sementara menunggu server)
   const [optimisticStatusMap, setOptimisticStatusMap] = useState<Record<string, DealStatus>>({});
@@ -137,6 +202,13 @@ export default function DealsPage() {
         <div className="flex items-center gap-2 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
           <CheckCircle2 className="h-5 w-5 shrink-0" />
           <span>{reviewSuccessMsg}</span>
+        </div>
+      )}
+
+      {escrowSuccessMsg && (
+        <div className="flex items-center gap-2 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
+          <ShieldCheck className="h-5 w-5 shrink-0" />
+          <span>{escrowSuccessMsg}</span>
         </div>
       )}
 
@@ -290,6 +362,14 @@ export default function DealsPage() {
                       </button>
                       <button
                         type="button"
+                        onClick={() => openEscrowModal(deal)}
+                        className="inline-flex items-center gap-1 rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-medium text-blue-600 transition hover:bg-blue-50 dark:border-blue-900/40 dark:text-blue-400"
+                      >
+                        <ShieldCheck className="h-3.5 w-3.5" />
+                        Mulai Escrow
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => handleStatusChange(deal.id, "CANCELLED")}
                         disabled={updateStatus.isPending}
                         className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 dark:border-red-900/40 dark:text-red-400"
@@ -302,6 +382,14 @@ export default function DealsPage() {
 
                   {deal.status === "IN_PROGRESS" && (
                     <>
+                      <button
+                        type="button"
+                        onClick={() => openEscrowModal(deal)}
+                        className="inline-flex items-center gap-1 rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-medium text-blue-600 transition hover:bg-blue-50 dark:border-blue-900/40 dark:text-blue-400"
+                      >
+                        <ShieldCheck className="h-3.5 w-3.5" />
+                        Mulai Escrow
+                      </button>
                       <button
                         type="button"
                         onClick={() => handleStatusChange(deal.id, "COMPLETED")}
@@ -407,6 +495,140 @@ export default function DealsPage() {
                   className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
                 >
                   {createReview.isPending ? "Mengirim…" : "Kirim Ulasan"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Escrow Modal — trigger manual POST /escrow/hold terkait Deal ini */}
+      {escrowDeal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-xl dark:border-zinc-800 dark:bg-zinc-900">
+            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+              Mulai Escrow — Deal #{escrowDeal.id.slice(0, 8)}
+            </h3>
+            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+              Dana akan langsung ditahan (status HELD) begitu escrow dibuat. Pastikan
+              Party ID pihak lawan transaksi sudah benar.
+            </p>
+
+            <form onSubmit={handleInitiateEscrow} className="mt-5 space-y-4">
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                  Peran Party kamu di transaksi ini
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEscrowRole("BUYER")}
+                    className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition ${
+                      escrowRole === "BUYER"
+                        ? "border-blue-600 bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400"
+                        : "border-zinc-300 text-zinc-600 dark:border-zinc-700 dark:text-zinc-300"
+                    }`}
+                  >
+                    Buyer (Pembayar)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEscrowRole("SELLER")}
+                    className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition ${
+                      escrowRole === "SELLER"
+                        ? "border-blue-600 bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400"
+                        : "border-zinc-300 text-zinc-600 dark:border-zinc-700 dark:text-zinc-300"
+                    }`}
+                  >
+                    Seller (Penerima)
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                  Party kamu
+                </label>
+                <select
+                  value={myPartyId}
+                  onChange={(e) => setMyPartyId(e.target.value)}
+                  className="w-full rounded-lg border border-zinc-300 bg-white p-2.5 text-sm dark:border-zinc-700 dark:bg-zinc-950"
+                >
+                  <option value="">— pilih Party —</option>
+                  {myParties?.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+                {(myParties?.length ?? 0) === 0 && (
+                  <p className="mt-1 text-xs text-amber-600">
+                    Kamu belum punya Party. Buat dulu di halaman{" "}
+                    <span className="font-semibold">Party Saya</span>.
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                  Party ID lawan transaksi ({escrowRole === "BUYER" ? "Seller" : "Buyer"})
+                </label>
+                <input
+                  value={counterpartyId}
+                  onChange={(e) => setCounterpartyId(e.target.value)}
+                  placeholder="Tempel Party ID mitra transaksi"
+                  className="w-full rounded-lg border border-zinc-300 bg-white p-2.5 text-sm dark:border-zinc-700 dark:bg-zinc-950"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                  Jumlah Dana (IDR)
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  value={escrowAmount}
+                  onChange={(e) => setEscrowAmount(e.target.value)}
+                  placeholder="mis. 5000000"
+                  className="w-full rounded-lg border border-zinc-300 bg-white p-2.5 text-sm dark:border-zinc-700 dark:bg-zinc-950"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                  Catatan (opsional)
+                </label>
+                <textarea
+                  value={escrowNotes}
+                  onChange={(e) => setEscrowNotes(e.target.value)}
+                  rows={2}
+                  className="w-full rounded-lg border border-zinc-300 bg-white p-2.5 text-sm dark:border-zinc-700 dark:bg-zinc-950"
+                />
+              </div>
+
+              {escrowError && (
+                <div className="flex items-start gap-2 rounded-lg bg-red-50 p-2.5 text-xs text-red-700 dark:bg-red-950/40 dark:text-red-400">
+                  <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <span>{escrowError}</span>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEscrowDeal(null)}
+                  className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={initiateEscrow.isPending}
+                  className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {initiateEscrow.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Buat Escrow
                 </button>
               </div>
             </form>
