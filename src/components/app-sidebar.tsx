@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   GitCompareArrows,
   Building2,
+  ShieldCheck,
 } from "lucide-react";
 import { useUIStore } from "@/store/use-ui-store";
 import { usePWA } from "@/components/pwa-provider";
@@ -29,6 +30,7 @@ const navItems = [
   { href: "/matching", label: "Matching", icon: GitCompareArrows },
   { href: "/chat", label: "Chat", icon: MessageSquare },
   { href: "/deals", label: "Deal", icon: Handshake },
+  { href: "/escrow", label: "Escrow", icon: ShieldCheck },
   { href: "/membership", label: "Membership", icon: Crown },
   { href: "/notifications", label: "Notifikasi", icon: Bell },
   { href: "/profile", label: "Profil", icon: User },
