@@ -51,24 +51,40 @@ export const membershipApi = {
   },
 
   /**
-   * Backend saat ini: /membership/status sering 404.
-   * Default akun gratis agar halaman tidak error.
+   * FIX: backend TIDAK punya endpoint /membership/status (makanya selalu 404
+   * sebelumnya). Endpoint yang benar adalah GET /membership/me
+   * (lihat membership.routes.js: router.get('/me', requireVerifiedSession(), getMyMembership))
+   * — mengembalikan objek Membership Prisma langsung, dengan field
+   * `status`: 'ACTIVE' | 'INACTIVE' | 'EXPIRED' (bukan boolean isActive/active).
    */
   status: async (): Promise<MembershipStatus> => {
     try {
-      const raw = await apiClient.get<unknown>("/api/v1/membership/status");
+      const raw = await apiClient.get<unknown>("/api/v1/membership/me");
       if (raw && typeof raw === "object") {
         const s = raw as Record<string, unknown>;
+        const statusText = String(s.status ?? "").toUpperCase();
         return {
-          isActive: Boolean(s.isActive ?? s.active),
-          expiresAt: (s.expiresAt as string) ?? (s.expires_at as string) ?? null,
-          planId: (s.planId as string) ?? (s.plan_id as string) ?? null,
+          isActive: statusText === "ACTIVE",
+          expiresAt: (s.expiresAt as string) ?? null,
+          planId: (s.planId as string) ?? null,
         };
       }
     } catch {
-      // Route not found / unauthorized — anggap free tier
+      // Belum login / belum pernah punya membership (getOrCreateMembership
+      // akan auto-create baris INACTIVE, jadi 404 di sini seharusnya cuma
+      // terjadi kalau session tidak terverifikasi) — anggap free tier.
     }
     return { isActive: false, expiresAt: null, planId: null };
+  },
+
+  /** GET /membership/transactions/me — riwayat transaksi checkout membership milik sendiri. */
+  transactions: async (): Promise<unknown[]> => {
+    try {
+      const raw = await apiClient.get<unknown>("/api/v1/membership/transactions/me");
+      return Array.isArray(raw) ? raw : [];
+    } catch {
+      return [];
+    }
   },
 
   checkout: (planId: string) =>

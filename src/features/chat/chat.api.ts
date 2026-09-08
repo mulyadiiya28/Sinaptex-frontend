@@ -38,12 +38,19 @@ export const chatApi = {
     }
   },
 
-  toggleReaction: (conversationId: string, messageId: string, emoji: string) =>
-    apiClient
-      .post<{ success: boolean; data?: unknown }>("/api/v1/chat/reactions", {
-        conversationId,
-        messageId,
-        emoji,
-      })
-      .catch(() => ({ success: true })),
+  // NOTE: /api/v1/chat/reactions TIDAK ada di dokumentasi resmi OpenAPI
+  // (cahayaastera.com/api/docs) — dikonfirmasi lewat pengecekan endpoint list.
+  // Sebelumnya kode ini tetap memanggil endpoint tsb dan mengandalkan .catch()
+  // untuk diam-diam "berhasil", padahal itu selalu gagal di backend (request
+  // sia-sia setiap kali user reaksi). Reaksi realtime tetap jalan lewat
+  // Socket.IO (lihat handleToggleReaction di chat/page.tsx yang panggil
+  // sendReaction terlebih dahulu). Fungsi ini dibuat no-op sampai backend
+  // benar-benar menyediakan endpoint REST untuk reaction.
+  toggleReaction: async (
+    _conversationId: string,
+    _messageId: string,
+    _emoji: string
+  ): Promise<{ success: boolean; data?: unknown }> => {
+    return { success: true };
+  },
 };

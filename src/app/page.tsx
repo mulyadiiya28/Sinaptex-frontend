@@ -218,13 +218,13 @@ async function fetchOpportunities(): Promise<Opportunity[]> {
   return staticOpportunities;
 }
 
+// NOTE: GET /api/v1/categories TIDAK ada di backend (dikonfirmasi — modul
+// "Categories" memang belum diimplementasikan di API). Sebelumnya kode ini
+// tetap memanggil endpoint tsb dan diam-diam fallback ke staticCategories
+// tiap kali gagal — artinya SELALU fallback, request-nya sia-sia. Sekarang
+// langsung pakai staticCategories saja. Kalau backend nanti menyediakan
+// endpoint ini, tinggal aktifkan lagi pemanggilan API-nya di sini.
 async function fetchCategories(): Promise<Category[]> {
-  try {
-    const res = await apiClient.get<Category[]>("/api/v1/categories", { auth: false });
-    if (Array.isArray(res) && res.length > 0) return res;
-  } catch {
-    /* fallback */
-  }
   return staticCategories;
 }
 

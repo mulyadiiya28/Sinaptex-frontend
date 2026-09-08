@@ -1,0 +1,168 @@
+diff --git a/src/app/page.tsx b/src/app/page.tsx
+index 765a7ea..e915604 100644
+--- a/src/app/page.tsx
++++ b/src/app/page.tsx
+@@ -218,13 +218,13 @@ async function fetchOpportunities(): Promise<Opportunity[]> {
+   return staticOpportunities;
+ }
+ 
++// NOTE: GET /api/v1/categories TIDAK ada di backend (dikonfirmasi — modul
++// "Categories" memang belum diimplementasikan di API). Sebelumnya kode ini
++// tetap memanggil endpoint tsb dan diam-diam fallback ke staticCategories
++// tiap kali gagal — artinya SELALU fallback, request-nya sia-sia. Sekarang
++// langsung pakai staticCategories saja. Kalau backend nanti menyediakan
++// endpoint ini, tinggal aktifkan lagi pemanggilan API-nya di sini.
+ async function fetchCategories(): Promise<Category[]> {
+-  try {
+-    const res = await apiClient.get<Category[]>("/api/v1/categories", { auth: false });
+-    if (Array.isArray(res) && res.length > 0) return res;
+-  } catch {
+-    /* fallback */
+-  }
+   return staticCategories;
+ }
+ 
+diff --git a/src/components/dynamic-navbar.tsx b/src/components/dynamic-navbar.tsx
+index 94a5657..fff80c3 100644
+--- a/src/components/dynamic-navbar.tsx
++++ b/src/components/dynamic-navbar.tsx
+@@ -18,8 +18,6 @@ import {
+   Loader2,
+   MessageSquare,
+ } from "lucide-react";
+-import { apiClient } from "@/lib/api-client";
+-
+ /* ═══════════════════════════════════════════════
+    API CONTRACT / TYPE DEFINITIONS
+    ═══════════════════════════════════════════════
+@@ -213,19 +211,18 @@ const staticNavItems: NavItem[] = [
+ 
+ /* ═══════════════════════════════════════════════
+    API FETCHER
++
++   NOTE: GET /api/v1/navigation/public TIDAK ada di backend
++   (dikonfirmasi — modul navigasi dinamis di atas cuma kontrak/desain,
++   belum pernah diimplementasikan di API). useQuery di bawah selalu retry
++   lalu diam-diam fallback ke staticNavItems, jadi request-nya sia-sia
++   setiap kali navbar dirender. Sekarang langsung pakai staticNavItems.
++   Kalau backend nanti implementasi endpoint ini sesuai kontrak di atas,
++   tinggal aktifkan lagi fetchNavigation() + useQuery di bawah.
+    ═══════════════════════════════════════════════ */
+ 
+ async function fetchNavigation(): Promise<NavItem[]> {
+-  try {
+-    const response = await apiClient.get<NavigationResponse>("/api/v1/navigation/public");
+-    if (response.success && Array.isArray(response.data)) {
+-      return response.data;
+-    }
+-    return staticNavItems;
+-  } catch {
+-    // Fallback ke static data jika API belum tersedia
+-    return staticNavItems;
+-  }
++  return staticNavItems;
+ }
+ 
+ /* ═══════════════════════════════════════════════
+diff --git a/src/features/chat/chat.api.ts b/src/features/chat/chat.api.ts
+index 45c4f6c..eb7dacd 100644
+--- a/src/features/chat/chat.api.ts
++++ b/src/features/chat/chat.api.ts
+@@ -38,12 +38,19 @@ export const chatApi = {
+     }
+   },
+ 
+-  toggleReaction: (conversationId: string, messageId: string, emoji: string) =>
+-    apiClient
+-      .post<{ success: boolean; data?: unknown }>("/api/v1/chat/reactions", {
+-        conversationId,
+-        messageId,
+-        emoji,
+-      })
+-      .catch(() => ({ success: true })),
++  // NOTE: /api/v1/chat/reactions TIDAK ada di dokumentasi resmi OpenAPI
++  // (cahayaastera.com/api/docs) — dikonfirmasi lewat pengecekan endpoint list.
++  // Sebelumnya kode ini tetap memanggil endpoint tsb dan mengandalkan .catch()
++  // untuk diam-diam "berhasil", padahal itu selalu gagal di backend (request
++  // sia-sia setiap kali user reaksi). Reaksi realtime tetap jalan lewat
++  // Socket.IO (lihat handleToggleReaction di chat/page.tsx yang panggil
++  // sendReaction terlebih dahulu). Fungsi ini dibuat no-op sampai backend
++  // benar-benar menyediakan endpoint REST untuk reaction.
++  toggleReaction: async (
++    _conversationId: string,
++    _messageId: string,
++    _emoji: string
++  ): Promise<{ success: boolean; data?: unknown }> => {
++    return { success: true };
++  },
+ };
+diff --git a/src/features/membership/membership.api.ts b/src/features/membership/membership.api.ts
+index 806b9ee..23afc23 100644
+--- a/src/features/membership/membership.api.ts
++++ b/src/features/membership/membership.api.ts
+@@ -51,26 +51,42 @@ export const membershipApi = {
+   },
+ 
+   /**
+-   * Backend saat ini: /membership/status sering 404.
+-   * Default akun gratis agar halaman tidak error.
++   * FIX: backend TIDAK punya endpoint /membership/status (makanya selalu 404
++   * sebelumnya). Endpoint yang benar adalah GET /membership/me
++   * (lihat membership.routes.js: router.get('/me', requireVerifiedSession(), getMyMembership))
++   * — mengembalikan objek Membership Prisma langsung, dengan field
++   * `status`: 'ACTIVE' | 'INACTIVE' | 'EXPIRED' (bukan boolean isActive/active).
+    */
+   status: async (): Promise<MembershipStatus> => {
+     try {
+-      const raw = await apiClient.get<unknown>("/api/v1/membership/status");
++      const raw = await apiClient.get<unknown>("/api/v1/membership/me");
+       if (raw && typeof raw === "object") {
+         const s = raw as Record<string, unknown>;
++        const statusText = String(s.status ?? "").toUpperCase();
+         return {
+-          isActive: Boolean(s.isActive ?? s.active),
+-          expiresAt: (s.expiresAt as string) ?? (s.expires_at as string) ?? null,
+-          planId: (s.planId as string) ?? (s.plan_id as string) ?? null,
++          isActive: statusText === "ACTIVE",
++          expiresAt: (s.expiresAt as string) ?? null,
++          planId: (s.planId as string) ?? null,
+         };
+       }
+     } catch {
+-      // Route not found / unauthorized — anggap free tier
++      // Belum login / belum pernah punya membership (getOrCreateMembership
++      // akan auto-create baris INACTIVE, jadi 404 di sini seharusnya cuma
++      // terjadi kalau session tidak terverifikasi) — anggap free tier.
+     }
+     return { isActive: false, expiresAt: null, planId: null };
+   },
+ 
++  /** GET /membership/transactions/me — riwayat transaksi checkout membership milik sendiri. */
++  transactions: async (): Promise<unknown[]> => {
++    try {
++      const raw = await apiClient.get<unknown>("/api/v1/membership/transactions/me");
++      return Array.isArray(raw) ? raw : [];
++    } catch {
++      return [];
++    }
++  },
++
+   checkout: (planId: string) =>
+     apiClient.post<{ checkoutUrl?: string; paymentUrl?: string }>(
+       "/api/v1/membership/checkout",
+diff --git a/src/features/opportunity/opportunity.api.ts b/src/features/opportunity/opportunity.api.ts
+index 554816a..0ea267d 100644
+--- a/src/features/opportunity/opportunity.api.ts
++++ b/src/features/opportunity/opportunity.api.ts
+@@ -43,5 +43,9 @@ export const opportunityApi = {
+   close: (id: string) =>
+     apiClient.post<Opportunity>(`/api/v1/opportunities/${id}/close`),
+ 
+-  remove: (id: string) => apiClient.delete<void>(`/api/v1/opportunities/${id}`),
++  // NOTE: DELETE /opportunities/{id} sengaja tidak diimplementasikan.
++  // Endpoint ini TIDAK ada di dokumentasi resmi (cahayaastera.com/api/docs).
++  // Backend hanya menyediakan "close" (POST/PATCH /opportunities/{id}/close)
++  // untuk menutup Opportunity — bukan hard-delete. Kalau butuh fitur hapus,
++  // konfirmasi dulu ke tim backend apakah endpoint-nya akan ditambahkan.
+ };
+\ No newline at end of file

@@ -43,5 +43,9 @@ export const opportunityApi = {
   close: (id: string) =>
     apiClient.post<Opportunity>(`/api/v1/opportunities/${id}/close`),
 
-  remove: (id: string) => apiClient.delete<void>(`/api/v1/opportunities/${id}`),
+  // NOTE: DELETE /opportunities/{id} sengaja tidak diimplementasikan.
+  // Endpoint ini TIDAK ada di dokumentasi resmi (cahayaastera.com/api/docs).
+  // Backend hanya menyediakan "close" (POST/PATCH /opportunities/{id}/close)
+  // untuk menutup Opportunity — bukan hard-delete. Kalau butuh fitur hapus,
+  // konfirmasi dulu ke tim backend apakah endpoint-nya akan ditambahkan.
 };

@@ -18,8 +18,6 @@ import {
   Loader2,
   MessageSquare,
 } from "lucide-react";
-import { apiClient } from "@/lib/api-client";
-
 /* ═══════════════════════════════════════════════
    API CONTRACT / TYPE DEFINITIONS
    ═══════════════════════════════════════════════
@@ -213,19 +211,18 @@ const staticNavItems: NavItem[] = [
 
 /* ═══════════════════════════════════════════════
    API FETCHER
+
+   NOTE: GET /api/v1/navigation/public TIDAK ada di backend
+   (dikonfirmasi — modul navigasi dinamis di atas cuma kontrak/desain,
+   belum pernah diimplementasikan di API). useQuery di bawah selalu retry
+   lalu diam-diam fallback ke staticNavItems, jadi request-nya sia-sia
+   setiap kali navbar dirender. Sekarang langsung pakai staticNavItems.
+   Kalau backend nanti implementasi endpoint ini sesuai kontrak di atas,
+   tinggal aktifkan lagi fetchNavigation() + useQuery di bawah.
    ═══════════════════════════════════════════════ */
 
 async function fetchNavigation(): Promise<NavItem[]> {
-  try {
-    const response = await apiClient.get<NavigationResponse>("/api/v1/navigation/public");
-    if (response.success && Array.isArray(response.data)) {
-      return response.data;
-    }
-    return staticNavItems;
-  } catch {
-    // Fallback ke static data jika API belum tersedia
-    return staticNavItems;
-  }
+  return staticNavItems;
 }
 
 /* ═══════════════════════════════════════════════
