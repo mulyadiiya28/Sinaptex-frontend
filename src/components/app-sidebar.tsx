@@ -15,6 +15,7 @@ import {
   Download,
   CheckCircle2,
   GitCompareArrows,
+  Building2,
 } from "lucide-react";
 import { useUIStore } from "@/store/use-ui-store";
 import { usePWA } from "@/components/pwa-provider";
@@ -24,6 +25,7 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/marketplace", label: "Marketplace", icon: Store },
   { href: "/opportunities", label: "Opportunity saya", icon: Briefcase },
+  { href: "/parties", label: "Party saya", icon: Building2 },
   { href: "/matching", label: "Matching", icon: GitCompareArrows },
   { href: "/chat", label: "Chat", icon: MessageSquare },
   { href: "/deals", label: "Deal", icon: Handshake },
