@@ -166,3 +166,176 @@ index 554816a..0ea267d 100644
 +  // konfirmasi dulu ke tim backend apakah endpoint-nya akan ditambahkan.
  };
 \ No newline at end of file
+diff --git a/src/features/party/party.api.ts b/src/features/party/party.api.ts
+new file mode 100644
+index 0000000..ef60857
+--- /dev/null
++++ b/src/features/party/party.api.ts
+@@ -0,0 +1,25 @@
++import { apiClient } from "@/lib/api-client";
++import { CreatePartyInput, Party, UpdatePartyInput } from "./party.schema";
++
++export const partyApi = {
++  /** GET /parties — list semua Party milik Profile yang login */
++  list: () => apiClient.get<Party[]>("/api/v1/parties"),
++
++  /** GET /parties/{id} — publik, dipakai frontend nampilkan profil di halaman Opportunity */
++  get: (id: string) => apiClient.get<Party>(`/api/v1/parties/${id}`, { auth: false }),
++
++  /** POST /parties — buat Party baru untuk Profile yang login (mis. akun perusahaan kedua) */
++  create: (input: CreatePartyInput) => apiClient.post<Party>("/api/v1/parties", input),
++
++  /** PATCH /parties/{id} — update Party milik sendiri */
++  update: (id: string, input: UpdatePartyInput) =>
++    apiClient.patch<Party>(`/api/v1/parties/${id}`, input),
++
++  /** POST /parties/{id}/capabilities — tambah Capability ke Party milik sendiri */
++  addCapability: (id: string, name: string) =>
++    apiClient.post<Party>(`/api/v1/parties/${id}/capabilities`, { name }),
++
++  /** DELETE /parties/{id}/capabilities/{capabilityId} — hapus Capability dari Party milik sendiri */
++  removeCapability: (id: string, capabilityId: string) =>
++    apiClient.delete<void>(`/api/v1/parties/${id}/capabilities/${capabilityId}`),
++};
+diff --git a/src/features/party/party.hooks.ts b/src/features/party/party.hooks.ts
+new file mode 100644
+index 0000000..1d8c799
+--- /dev/null
++++ b/src/features/party/party.hooks.ts
+@@ -0,0 +1,72 @@
++import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
++import { partyApi } from "./party.api";
++import { CreatePartyInput, UpdatePartyInput } from "./party.schema";
++
++export const partyKeys = {
++  all: ["parties"] as const,
++  mine: () => ["parties", "mine"] as const,
++  detail: (id: string) => ["parties", "detail", id] as const,
++};
++
++/** List Party milik Profile yang login (mis. dropdown "posting sebagai") */
++export function useMyParties() {
++  return useQuery({
++    queryKey: partyKeys.mine(),
++    queryFn: () => partyApi.list(),
++  });
++}
++
++/** Detail Party (publik) — dipakai di halaman profil Party / Opportunity detail */
++export function useParty(id: string) {
++  return useQuery({
++    queryKey: partyKeys.detail(id),
++    queryFn: () => partyApi.get(id),
++    enabled: Boolean(id),
++  });
++}
++
++export function useCreateParty() {
++  const queryClient = useQueryClient();
++  return useMutation({
++    mutationFn: (input: CreatePartyInput) => partyApi.create(input),
++    onSuccess: () => {
++      queryClient.invalidateQueries({ queryKey: partyKeys.mine() });
++    },
++  });
++}
++
++export function useUpdateParty() {
++  const queryClient = useQueryClient();
++  return useMutation({
++    mutationFn: ({ id, input }: { id: string; input: UpdatePartyInput }) =>
++      partyApi.update(id, input),
++    onSuccess: (_data, { id }) => {
++      queryClient.invalidateQueries({ queryKey: partyKeys.mine() });
++      queryClient.invalidateQueries({ queryKey: partyKeys.detail(id) });
++    },
++  });
++}
++
++export function useAddCapability() {
++  const queryClient = useQueryClient();
++  return useMutation({
++    mutationFn: ({ partyId, name }: { partyId: string; name: string }) =>
++      partyApi.addCapability(partyId, name),
++    onSuccess: (_data, { partyId }) => {
++      queryClient.invalidateQueries({ queryKey: partyKeys.detail(partyId) });
++      queryClient.invalidateQueries({ queryKey: partyKeys.mine() });
++    },
++  });
++}
++
++export function useRemoveCapability() {
++  const queryClient = useQueryClient();
++  return useMutation({
++    mutationFn: ({ partyId, capabilityId }: { partyId: string; capabilityId: string }) =>
++      partyApi.removeCapability(partyId, capabilityId),
++    onSuccess: (_data, { partyId }) => {
++      queryClient.invalidateQueries({ queryKey: partyKeys.detail(partyId) });
++      queryClient.invalidateQueries({ queryKey: partyKeys.mine() });
++    },
++  });
++}
+diff --git a/src/features/party/party.schema.ts b/src/features/party/party.schema.ts
+new file mode 100644
+index 0000000..2eed41f
+--- /dev/null
++++ b/src/features/party/party.schema.ts
+@@ -0,0 +1,58 @@
++import { z } from "zod";
++
++/**
++ * Sesuai dokumentasi resmi (cahayaastera.com/api/docs — section "Party"):
++ *
++ *   POST   /parties
++ *   GET    /parties
++ *   GET    /parties/{id}
++ *   PATCH  /parties/{id}
++ *   POST   /parties/{id}/capabilities
++ *   DELETE /parties/{id}/capabilities/{capabilityId}
++ *
++ * Bentuk field diambil dari RegisterProfileInput.party (auth.schema.ts) —
++ * field yang sama dipakai saat Party pertama dibuat lewat POST /auth/register,
++ * jadi kemungkinan besar konsisten dengan payload create Party mandiri di sini.
++ *
++ * CATATAN: response shape (terutama field tambahan seperti logoUrl,
++ * verificationStatus, capabilities[]) belum dikonfirmasi dari source backend
++ * modul Party — kalau ternyata beda, sesuaikan schema ini (mirip waktu kita
++ * fix membership.api.ts kemarin).
++ */
++
++export const capabilitySchema = z.object({
++  id: z.string(),
++  name: z.string(),
++});
++export type Capability = z.infer<typeof capabilitySchema>;
++
++export const partySchema = z.object({
++  id: z.string(),
++  name: z.string(),
++  isCompany: z.boolean().optional().default(false),
++  categoryId: z.string().nullable().optional(),
++  description: z.string().nullable().optional(),
++  location: z.string().nullable().optional(),
++  npwp: z.string().nullable().optional(),
++  nib: z.string().nullable().optional(),
++  logoUrl: z.string().nullable().optional(),
++  verificationStatus: z.string().nullable().optional(), // "PENDING" | "APPROVED" | "REJECTED"
++  capabilities: z.array(capabilitySchema).optional().default([]),
++  createdAt: z.string().optional(),
++  updatedAt: z.string().optional(),
++});
++export type Party = z.infer<typeof partySchema>;
++
++export const createPartySchema = z.object({
++  name: z.string().min(2, "Nama minimal 2 karakter").max(150),
++  isCompany: z.boolean().optional(),
++  categoryId: z.string().optional(),
++  description: z.string().max(2000).optional(),
++  location: z.string().max(120).optional(),
++  npwp: z.string().optional(),
++  nib: z.string().optional(),
++});
++export type CreatePartyInput = z.infer<typeof createPartySchema>;
++
++export const updatePartySchema = createPartySchema.partial();
++export type UpdatePartyInput = z.infer<typeof updatePartySchema>;
