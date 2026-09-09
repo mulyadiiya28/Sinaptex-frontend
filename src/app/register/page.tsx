@@ -9,7 +9,7 @@ import { authKeys } from "@/features/auth/auth.hooks";
 import { useSessionStore } from "@/store/use-session-store";
 import { User, Mail, Lock, Phone, Eye, EyeOff, Loader2, MailCheck } from "lucide-react";
 import Link from "next/link";
-import { SinaptexLogo } from "@/components/sinaptex-logo";
+import Image from "next/image";
 
 function friendlyAuthError(msg: string): string {
   const m = msg.toLowerCase();
@@ -38,8 +38,6 @@ export default function RegisterPage() {
 
   const reason = searchParams.get("reason");
   const stepParam = searchParams.get("step");
-  const fromGoogle =
-    searchParams.get("from") === "google" || searchParams.get("from") === "session";
 
   const [step, setStep] = useState<"signup" | "verify-email" | "profile">(
     stepParam === "profile" || reason === "complete_profile" ? "profile" : "signup"
@@ -54,7 +52,6 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [debugHint, setDebugHint] = useState("");
 
-  // Hanya redirect dashboard jika me berasal dari backend (punya fullName atau email dari API)
   useEffect(() => {
     if (me?.id && me.fullName && !submittingRef.current) {
       router.replace("/dashboard");
@@ -152,7 +149,6 @@ export default function RegisterPage() {
 
       setDebugHint("Mengirim POST /api/v1/auth/register …");
 
-      // HARUS sukses di backend — tidak ada profil palsu di localStorage
       const profile = await authApi.register(body);
 
       if (!profile?.id || !profile.fullName) {
@@ -178,66 +174,108 @@ export default function RegisterPage() {
   }
 
   const inputClass =
-    "w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-[#0B2F6E] focus:bg-white focus:ring-2 focus:ring-[#0B2F6E]/20";
+    "peer w-full rounded-2xl border border-slate-200 bg-slate-50/50 py-2.5 pl-10 pr-4 text-sm text-slate-900 outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-[#0B2F6E] focus:bg-white focus:ring-4 focus:ring-[#0B2F6E]/10";
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-white via-slate-50 to-blue-50 px-4">
-      <div className="w-full max-w-md space-y-6 rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-        <div className="flex flex-col items-center text-center">
-          <SinaptexLogo
-            variant="horizontal"
-            size="md"
-            showTagline
-            responsiveCollapse={false}
-            taglineText="Ekosistem Bisnis Dan Layanan Cerdas"
-          />
-          <h1 className="mt-6 text-2xl font-bold tracking-tight text-[#0B2F6E]">
-            {step === "signup"
-              ? "Buat Akun Sinaptex"
-              : step === "verify-email"
-                ? "Verifikasi Email"
-                : "Lengkapi Profil"}
-          </h1>
-          <p className="mt-2 text-sm text-slate-500">
-            {step === "profile"
-              ? "Data ini disimpan ke User + Profile di server Sinaptex (bukan hanya di browser)."
-              : step === "signup"
-                ? (
-                    <>
-                      Sudah punya akun?{" "}
-                      <Link href="/login" className="font-medium text-[#FF6B00] hover:text-orange-600">
-                        Masuk
-                      </Link>
-                    </>
-                  )
-                : "Kami mengirim link konfirmasi ke email Anda."}
-          </p>
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-50/50 p-4 sm:p-6 lg:p-8">
+      {/* Background Ambient Glows */}
+      <div className="pointer-events-none absolute -top-40 -left-40 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-amber-500/10 blur-3xl" />
+
+      {/* Register Card */}
+      <div className="relative w-full max-w-md space-y-5 rounded-3xl border border-slate-200/80 bg-white/90 p-6 shadow-2xl shadow-slate-200/60 backdrop-blur-xl sm:p-8">
+        
+        {/* Header Section */}
+        <div className="space-y-4">
+          {/* Header Bar: Icon (Kiri), Brand & Motto (Tengah), B2B Badge (Kanan) */}
+          <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3.5">
+            {/* Pojok Kiri: Icon Logo */}
+            <div className="flex shrink-0 items-center">
+              <Image
+                src="/icons/icon-maskable.svg"
+                alt="Sinaptex Logo"
+                width={44}
+                height={44}
+                className="h-11 w-11 rounded-xl object-contain"
+                priority
+              />
+            </div>
+
+            {/* Tengah: Brand & Motto */}
+            <div className="flex min-w-0 flex-col items-center text-center">
+              <span className="text-base font-bold tracking-tight text-[#0B2F6E]">
+                Sinaptex
+              </span>
+              <span className="text-[10px] font-medium leading-tight text-slate-500">
+                Ekosistem Bisnis Dan Layanan Cerdas
+              </span>
+            </div>
+
+            {/* Pojok Kanan: Badge B2B */}
+            <div className="flex shrink-0 items-center justify-end">
+              <span className="rounded-lg bg-[#0B2F6E]/10 px-2.5 py-0.5 text-xs font-bold tracking-wide text-[#0B2F6E]">
+                B2B
+              </span>
+            </div>
+          </div>
+
+          {/* Title & Subtitle / Link */}
+          <div className="text-center pt-1">
+            <h1 className="text-xl font-bold tracking-tight text-[#0B2F6E]">
+              {step === "signup"
+                ? "Buat Akun Sinaptex"
+                : step === "verify-email"
+                  ? "Verifikasi Email"
+                  : "Lengkapi Profil"}
+            </h1>
+            <p className="mt-1 text-xs sm:text-sm text-slate-500">
+              {step === "profile" ? (
+                "Data ini disimpan ke User + Profile di server Sinaptex."
+              ) : step === "signup" ? (
+                <>
+                  Sudah punya akun?{" "}
+                  <Link
+                    href="/login"
+                    className="font-semibold text-[#FF6B00] transition-colors duration-200 hover:text-amber-600 hover:underline"
+                  >
+                    Masuk
+                  </Link>
+                </>
+              ) : (
+                "Kami mengirim link konfirmasi ke email Anda."
+              )}
+            </p>
+          </div>
         </div>
 
+        {/* Step 1: Verify Email */}
         {step === "verify-email" && (
           <div className="space-y-4 text-center">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50">
               <MailCheck className="h-7 w-7 text-[#0B2F6E]" />
             </div>
-            <p className="text-sm text-slate-600">
+            <p className="text-xs sm:text-sm text-slate-600">
               Link verifikasi dikirim ke{" "}
               <span className="font-semibold text-slate-900">{email}</span>.
             </p>
             <Link
               href="/login"
-              className="inline-flex rounded-xl bg-[#0B2F6E] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#082352]"
+              className="inline-flex w-full items-center justify-center rounded-2xl bg-[#0B2F6E] px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-[#0B2F6E]/20 transition-all duration-200 hover:bg-[#082352]"
             >
               Ke halaman Masuk
             </Link>
           </div>
         )}
 
+        {/* Step 2: Signup Form */}
         {step === "signup" && (
-          <form onSubmit={handleSignUp} className="space-y-4">
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">Email</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <form onSubmit={handleSignUp} className="space-y-3.5">
+            <div className="space-y-1">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600">
+                Email
+              </label>
+              <div className="relative flex items-center">
+                <Mail className="pointer-events-none absolute left-3.5 h-4 w-4 text-slate-400 transition-colors duration-200 peer-focus:text-[#0B2F6E]" />
                 <input
                   type="email"
                   value={email}
@@ -248,10 +286,13 @@ export default function RegisterPage() {
                 />
               </div>
             </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+
+            <div className="space-y-1">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600">
+                Password
+              </label>
+              <div className="relative flex items-center">
+                <Lock className="pointer-events-none absolute left-3.5 h-4 w-4 text-slate-400 transition-colors duration-200 peer-focus:text-[#0B2F6E]" />
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
@@ -259,23 +300,24 @@ export default function RegisterPage() {
                   placeholder="••••••••"
                   required
                   minLength={6}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-10 text-sm outline-none focus:border-[#0B2F6E] focus:bg-white focus:ring-2 focus:ring-[#0B2F6E]/20"
+                  className="peer w-full rounded-2xl border border-slate-200 bg-slate-50/50 py-2.5 pl-10 pr-11 text-sm text-slate-900 outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-[#0B2F6E] focus:bg-white focus:ring-4 focus:ring-[#0B2F6E]/10"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+                  className="absolute right-3.5 rounded-lg p-1 text-slate-400 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-600"
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">
+
+            <div className="space-y-1">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600">
                 Konfirmasi Password
               </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <div className="relative flex items-center">
+                <Lock className="pointer-events-none absolute left-3.5 h-4 w-4 text-slate-400 transition-colors duration-200 peer-focus:text-[#0B2F6E]" />
                 <input
                   type={showPassword ? "text" : "password"}
                   value={confirmPassword}
@@ -286,43 +328,50 @@ export default function RegisterPage() {
                 />
               </div>
             </div>
+
             {error && (
-              <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>
+              <div className="rounded-2xl border border-red-200/80 bg-red-50/80 p-3 text-xs font-medium text-red-600 backdrop-blur-sm">
+                {error}
+              </div>
             )}
+
             <button
               type="submit"
               disabled={loading}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#0B2F6E] px-4 py-3 text-sm font-semibold text-white hover:bg-[#082352] disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#0B2F6E] px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-[#0B2F6E]/20 transition-all duration-200 hover:bg-[#082352] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
             >
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-              {loading ? "Memuat..." : "Lanjutkan"}
+              <span>{loading ? "Memuat..." : "Lanjutkan"}</span>
             </button>
           </form>
         )}
 
+        {/* Step 3: Complete Profile */}
         {step === "profile" && (
-          <form onSubmit={handleRegisterProfile} className="space-y-4">
+          <form onSubmit={handleRegisterProfile} className="space-y-3.5">
             {email && (
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-slate-700">Email</label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600">
+                  Email
+                </label>
+                <div className="relative flex items-center">
+                  <Mail className="pointer-events-none absolute left-3.5 h-4 w-4 text-slate-400" />
                   <input
                     type="email"
                     value={email}
                     readOnly
-                    className="w-full rounded-xl border border-slate-200 bg-slate-100 py-2.5 pl-10 pr-4 text-sm text-slate-500 outline-none"
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-100/70 py-2.5 pl-10 pr-4 text-sm text-slate-500 outline-none"
                   />
                 </div>
               </div>
             )}
 
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">
+            <div className="space-y-1">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600">
                 Nama Lengkap <span className="text-red-500">*</span>
               </label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <div className="relative flex items-center">
+                <User className="pointer-events-none absolute left-3.5 h-4 w-4 text-slate-400 transition-colors duration-200 peer-focus:text-[#0B2F6E]" />
                 <input
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
@@ -334,12 +383,12 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                Nomor Telepon <span className="text-slate-400">(opsional)</span>
+            <div className="space-y-1">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600">
+                Nomor Telepon <span className="text-slate-400 lowercase">(opsional)</span>
               </label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <div className="relative flex items-center">
+                <Phone className="pointer-events-none absolute left-3.5 h-4 w-4 text-slate-400 transition-colors duration-200 peer-focus:text-[#0B2F6E]" />
                 <input
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
@@ -350,7 +399,9 @@ export default function RegisterPage() {
             </div>
 
             {error && (
-              <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>
+              <div className="rounded-2xl border border-red-200/80 bg-red-50/80 p-3 text-xs font-medium text-red-600 backdrop-blur-sm">
+                {error}
+              </div>
             )}
             {debugHint && (
               <p className="text-[11px] text-slate-400">{debugHint}</p>
@@ -359,24 +410,24 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={loading || fullName.trim().length < 2}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#FF6B00] px-4 py-3 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#FF6B00] px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-[#FF6B00]/20 transition-all duration-200 hover:bg-orange-600 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
             >
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-              {loading ? "Menyimpan ke server…" : "Selesaikan Pendaftaran"}
+              <span>{loading ? "Menyimpan ke server…" : "Selesaikan Pendaftaran"}</span>
             </button>
 
             <div className="flex flex-col gap-2 border-t border-slate-100 pt-4">
               <button
                 type="button"
                 onClick={handleSkipToHome}
-                className="w-full text-center text-sm font-medium text-slate-600 hover:text-[#0B2F6E]"
+                className="w-full text-center text-xs font-medium text-slate-600 transition-colors hover:text-[#0B2F6E]"
               >
                 Lewati dulu — ke beranda
               </button>
               <button
                 type="button"
                 onClick={handleSignOutAndHome}
-                className="w-full text-center text-xs text-slate-400 hover:text-red-600"
+                className="w-full text-center text-[11px] text-slate-400 transition-colors hover:text-red-600"
               >
                 Keluar dari sesi ini & ke beranda
               </button>

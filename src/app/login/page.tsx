@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase-client";
-import { Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
 import Link from "next/link";
-import { SinaptexLogo } from "@/components/sinaptex-logo";
+import Image from "next/image";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -56,39 +56,75 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-white via-slate-50 to-blue-50 px-4">
-      <div className="w-full max-w-md space-y-6 rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-        <div className="flex flex-col items-center text-center">
-          <SinaptexLogo
-            variant="horizontal"
-            size="md"
-            showTagline
-            responsiveCollapse={false}
-            taglineText="Ekosistem Bisnis Dan Layanan Cerdas"
-          />
-          <h1 className="mt-6 text-2xl font-bold tracking-tight text-[#0B2F6E]">
-            Masuk ke Sinaptex
-          </h1>
-          <p className="mt-2 text-sm text-slate-500">
-            Belum punya akun?{" "}
-            <Link
-              href="/register"
-              className="font-medium text-[#FF6B00] hover:text-orange-600"
-            >
-              Daftar sekarang
-            </Link>
-          </p>
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-50/50 p-4 sm:p-6 lg:p-8">
+      {/* Background Ambient Glows */}
+      <div className="pointer-events-none absolute -top-40 -left-40 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-amber-500/10 blur-3xl" />
+
+      {/* Login Card */}
+      <div className="relative w-full max-w-md space-y-5 rounded-3xl border border-slate-200/80 bg-white/90 p-6 shadow-2xl shadow-slate-200/60 backdrop-blur-xl sm:p-8">
+        
+        {/* Header Section */}
+        <div className="space-y-4">
+          {/* Header Bar: Icon (Kiri), Brand & Motto (Tengah), B2B Badge (Kanan) */}
+          <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3.5">
+            {/* Pojok Kiri: Icon Logo */}
+            <div className="flex shrink-0 items-center">
+              <Image
+                src="/icons/icon-maskable.svg"
+                alt="Sinaptex Logo"
+                width={44}
+                height={44}
+                className="h-11 w-11 rounded-xl object-contain"
+                priority
+              />
+            </div>
+
+            {/* Tengah: Brand & Motto */}
+            <div className="flex min-w-0 flex-col items-center text-center">
+              <span className="text-base font-bold tracking-tight text-[#0B2F6E]">
+                Sinaptex
+              </span>
+              <span className="text-[10px] font-medium leading-tight text-slate-500">
+                Ekosistem Bisnis Dan Layanan Cerdas
+              </span>
+            </div>
+
+            {/* Pojok Kanan: Badge B2B */}
+            <div className="flex shrink-0 items-center justify-end">
+              <span className="rounded-lg bg-[#0B2F6E]/10 px-2.5 py-0.5 text-xs font-bold tracking-wide text-[#0B2F6E]">
+                B2B
+              </span>
+            </div>
+          </div>
+
+          {/* Title & Link Register */}
+          <div className="text-center pt-1">
+            <h1 className="text-xl font-bold tracking-tight text-[#0B2F6E]">
+              Masuk ke Sinaptex
+            </h1>
+            <p className="mt-1 text-xs sm:text-sm text-slate-500">
+              Belum punya akun?{" "}
+              <Link
+                href="/register"
+                className="font-semibold text-[#FF6B00] transition-colors duration-200 hover:text-amber-600 hover:underline"
+              >
+                Daftar sekarang
+              </Link>
+            </p>
+          </div>
         </div>
 
+        {/* Google OAuth Button */}
         <button
           onClick={handleGoogleLogin}
           disabled={googleLoading}
-          className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:opacity-50"
+          className="group relative flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200/90 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition-all duration-200 hover:border-slate-300 hover:bg-slate-50/80 hover:shadow active:scale-[0.99] disabled:pointer-events-none disabled:opacity-50"
         >
           {googleLoading ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
+            <Loader2 className="h-4 w-4 animate-spin text-[#0B2F6E]" />
           ) : (
-            <svg className="h-5 w-5" viewBox="0 0 24 24">
+            <svg className="h-4 w-4 transition-transform duration-200 group-hover:scale-110" viewBox="0 0 24 24">
               <path
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
                 fill="#4285F4"
@@ -107,67 +143,82 @@ export default function LoginPage() {
               />
             </svg>
           )}
-          {googleLoading ? "Menghubungkan..." : "Masuk dengan Google"}
+          <span>{googleLoading ? "Menghubungkan..." : "Masuk dengan Google"}</span>
         </button>
 
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-slate-200" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-white px-2 text-slate-500">atau masuk dengan email</span>
-          </div>
+        {/* Divider */}
+        <div className="relative flex items-center justify-center">
+          <div className="w-full border-t border-slate-200/80" />
+          <span className="absolute bg-white/90 px-3 text-[11px] font-medium uppercase tracking-wider text-slate-400 backdrop-blur-sm">
+            atau
+          </span>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">Email</label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        {/* Form Section */}
+        <form onSubmit={handleLogin} className="space-y-3.5">
+          {/* Email Input */}
+          <div className="space-y-1">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600">
+              Email
+            </label>
+            <div className="relative flex items-center">
+              <Mail className="pointer-events-none absolute left-3.5 h-4 w-4 text-slate-400 transition-colors duration-200 peer-focus:text-[#0B2F6E]" />
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="nama@email.com"
                 required
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-[#0B2F6E] focus:bg-white focus:ring-2 focus:ring-[#0B2F6E]/20"
+                className="peer w-full rounded-2xl border border-slate-200 bg-slate-50/50 py-2.5 pl-10 pr-4 text-sm text-slate-900 outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-[#0B2F6E] focus:bg-white focus:ring-4 focus:ring-[#0B2F6E]/10"
               />
             </div>
           </div>
 
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">Password</label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          {/* Password Input */}
+          <div className="space-y-1">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600">
+              Password
+            </label>
+            <div className="relative flex items-center">
+              <Lock className="pointer-events-none absolute left-3.5 h-4 w-4 text-slate-400 transition-colors duration-200 peer-focus:text-[#0B2F6E]" />
               <input
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-10 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-[#0B2F6E] focus:bg-white focus:ring-2 focus:ring-[#0B2F6E]/20"
+                className="peer w-full rounded-2xl border border-slate-200 bg-slate-50/50 py-2.5 pl-10 pr-11 text-sm text-slate-900 outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-[#0B2F6E] focus:bg-white focus:ring-4 focus:ring-[#0B2F6E]/10"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                className="absolute right-3.5 rounded-lg p-1 text-slate-400 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-600"
               >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
               </button>
             </div>
           </div>
 
+          {/* Error Alert */}
           {error && (
-            <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>
+            <div className="flex items-center gap-2 rounded-2xl border border-red-200/80 bg-red-50/80 p-3 text-xs font-medium text-red-600 backdrop-blur-sm">
+              <AlertCircle className="h-4 w-4 shrink-0 text-red-500" />
+              <span>{error}</span>
+            </div>
           )}
 
+          {/* Submit Button */}
           <button
             type="submit"
             disabled={loading}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#0B2F6E] px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#082352] disabled:opacity-50"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#0B2F6E] px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-[#0B2F6E]/20 transition-all duration-200 hover:bg-[#082352] hover:shadow-xl hover:shadow-[#0B2F6E]/30 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
           >
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            {loading ? "Memuat..." : "Masuk"}
+            <span>{loading ? "Memuat..." : "Masuk"}</span>
           </button>
         </form>
       </div>

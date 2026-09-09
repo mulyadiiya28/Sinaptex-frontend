@@ -43,7 +43,7 @@ export function SinaptexIcon({
       alt="Sinaptex"
       width={size}
       height={size}
-      className={`shrink-0 rounded-lg object-contain ${className}`}
+      className={`shrink-0 rounded-xl object-contain shadow-sm ${className}`}
       priority
     />
   );
@@ -59,7 +59,7 @@ interface SinaptexLogoProps {
   theme?: "auto" | "dark" | "light";
   /**
    * Responsive collapse (default true):
-   * - &lt; sm  : icon saja (brand + motto hidden)
+   * - < sm  : icon saja (brand + motto hidden)
    * - sm–lg : icon + brand (motto hidden)
    * - ≥ lg  : icon + brand + motto
    * Set false untuk selalu tampil penuh (login/register).
@@ -67,11 +67,6 @@ interface SinaptexLogoProps {
   responsiveCollapse?: boolean;
 }
 
-/**
- * Layout default (horizontal):
- *   [ICON]  Sinaptex
- *           Ekosistem Bisnis Dan Layanan Cerdas
- */
 export function SinaptexLogo({
   variant = "horizontal",
   size = "md",
@@ -87,31 +82,31 @@ export function SinaptexLogo({
       iconSize: 28,
       titleClass: "text-sm font-bold tracking-tight",
       taglineClass: "text-[9px] leading-tight",
-      spacing: "gap-2",
+      spacing: "gap-2.5",
     },
     sm: {
       iconSize: 36,
       titleClass: "text-base font-bold tracking-tight",
       taglineClass: "text-[10px] leading-tight",
-      spacing: "gap-2.5",
+      spacing: "gap-3",
     },
     md: {
       iconSize: 44,
       titleClass: "text-xl font-bold tracking-tight",
       taglineClass: "text-xs leading-tight",
-      spacing: "gap-3",
+      spacing: "gap-3.5",
     },
     lg: {
       iconSize: 56,
       titleClass: "text-2xl font-extrabold tracking-tight",
       taglineClass: "text-sm leading-tight",
-      spacing: "gap-3.5",
+      spacing: "gap-4",
     },
     xl: {
       iconSize: 72,
       titleClass: "text-3xl font-black tracking-tight",
       taglineClass: "text-base leading-tight",
-      spacing: "gap-4",
+      spacing: "gap-5",
     },
   }[size];
 
@@ -134,9 +129,9 @@ export function SinaptexLogo({
       ? showTagline
       : variant === "horizontal" || variant === "vertical" || variant === "badge";
 
-  // Progressive hide: brand from sm+, tagline from lg+
-  const brandVisibility = responsiveCollapse ? "hidden sm:block" : "";
-  const taglineVisibility = responsiveCollapse ? "hidden lg:block" : "";
+  // Responsive visibility flags
+  const brandVisibility = responsiveCollapse ? "hidden sm:flex" : "flex";
+  const taglineVisibility = responsiveCollapse ? "hidden lg:block" : "block";
 
   if (variant === "icon-only") {
     return (
@@ -157,14 +152,15 @@ export function SinaptexLogo({
     );
   }
 
-  const textBlock = (
-    <div className={`min-w-0 flex-col justify-center ${brandVisibility} sm:flex`}>
+  // Text block dengan penegasan alignment (text-left & items-start)
+  const textBlockHorizontal = (
+    <div className={`min-w-0 flex-col items-start justify-center text-left ${brandVisibility}`}>
       <span className={`${sizeConfig.titleClass} ${titleColor} leading-none`}>
         Sinaptex
       </span>
       {isTaglineVisible && (
         <span
-          className={`mt-0.5 ${sizeConfig.taglineClass} ${tagColor} font-medium ${taglineVisibility}`}
+          className={`mt-1 ${sizeConfig.taglineClass} ${tagColor} font-medium ${taglineVisibility}`}
         >
           {taglineText}
         </span>
@@ -174,7 +170,7 @@ export function SinaptexLogo({
 
   if (variant === "compact") {
     return (
-      <div className={`flex items-center ${sizeConfig.spacing} ${className}`}>
+      <div className={`inline-flex items-center ${sizeConfig.spacing} ${className}`}>
         <SinaptexIcon size={sizeConfig.iconSize} className={iconClassName} />
         <span
           className={`${sizeConfig.titleClass} ${titleColor} leading-none ${brandVisibility}`}
@@ -188,10 +184,10 @@ export function SinaptexLogo({
   if (variant === "badge") {
     return (
       <div
-        className={`flex items-center ${sizeConfig.spacing} rounded-2xl border border-slate-200/80 bg-white/90 p-3 shadow-sm backdrop-blur ${className}`}
+        className={`inline-flex items-center ${sizeConfig.spacing} rounded-2xl border border-slate-200/80 bg-white/90 p-3 shadow-sm backdrop-blur ${className}`}
       >
         <SinaptexIcon size={sizeConfig.iconSize} className={iconClassName} />
-        {textBlock}
+        {textBlockHorizontal}
       </div>
     );
   }
@@ -202,13 +198,13 @@ export function SinaptexLogo({
         className={`flex flex-col items-center text-center ${sizeConfig.spacing} ${className}`}
       >
         <SinaptexIcon size={sizeConfig.iconSize} className={iconClassName} />
-        <div className={`flex-col items-center ${brandVisibility} sm:flex`}>
+        <div className={`flex-col items-center text-center ${brandVisibility}`}>
           <span className={`${sizeConfig.titleClass} ${titleColor} leading-none`}>
             Sinaptex
           </span>
           {isTaglineVisible && (
             <span
-              className={`mt-1 max-w-[14rem] ${sizeConfig.taglineClass} ${tagColor} font-medium ${taglineVisibility}`}
+              className={`mt-1.5 max-w-[15rem] ${sizeConfig.taglineClass} ${tagColor} font-medium ${taglineVisibility}`}
             >
               {taglineText}
             </span>
@@ -218,11 +214,11 @@ export function SinaptexLogo({
     );
   }
 
-  // horizontal (default)
+  // Horizontal (Default)
   return (
-    <div className={`flex items-center ${sizeConfig.spacing} ${className}`}>
+    <div className={`inline-flex items-center ${sizeConfig.spacing} ${className}`}>
       <SinaptexIcon size={sizeConfig.iconSize} className={iconClassName} />
-      {textBlock}
+      {textBlockHorizontal}
     </div>
   );
 }

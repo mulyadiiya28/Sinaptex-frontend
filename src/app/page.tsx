@@ -25,8 +25,10 @@ import {
   Eye as EyeIcon,
   UserPlus,
   MessageSquare,
+  TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { apiClient } from "@/lib/api-client";
 import { DynamicNavbar } from "@/components/dynamic-navbar";
 
@@ -58,7 +60,7 @@ interface Category {
   icon: string;
 }
 
-// Static contoh UI saja — ID need-* / offer-* JANGAN di-link ke /opportunities (butuh auth + bukan UUID API)
+// Static contoh UI
 const staticOpportunities: Opportunity[] = [
   {
     id: "need-001",
@@ -175,7 +177,6 @@ function isStaticDemoId(id: string) {
 }
 
 function detailHref(id: string) {
-  // Static demo IDs must NOT open (app)/opportunities — that triggered RequireAuth + DEMO_USER mock
   if (isStaticDemoId(id)) {
     return `/login?redirect=${encodeURIComponent("/marketplace")}`;
   }
@@ -218,118 +219,147 @@ async function fetchOpportunities(): Promise<Opportunity[]> {
   return staticOpportunities;
 }
 
-// NOTE: GET /api/v1/categories TIDAK ada di backend (dikonfirmasi — modul
-// "Categories" memang belum diimplementasikan di API). Sebelumnya kode ini
-// tetap memanggil endpoint tsb dan diam-diam fallback ke staticCategories
-// tiap kali gagal — artinya SELALU fallback, request-nya sia-sia. Sekarang
-// langsung pakai staticCategories saja. Kalau backend nanti menyediakan
-// endpoint ini, tinggal aktifkan lagi pemanggilan API-nya di sini.
 async function fetchCategories(): Promise<Category[]> {
   return staticCategories;
 }
 
 function OpportunityCard({ opportunity }: { opportunity: Opportunity }) {
-  const isNeed = opportunity.type.toUpperCase() === "NEED";
+  const isNeed = opportunity.type?.toUpperCase() === "NEED";
   const urgent =
     opportunity.urgent || opportunity.priority === "URGENT" || opportunity.priority === "HIGH";
 
-  return (
-    <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs transition-all duration-300 hover:-translate-y-1.5 hover:border-slate-300 hover:shadow-xl">
-      <div
-        className={`relative h-28 w-full p-4 ${
-          isNeed
-            ? "bg-gradient-to-br from-[#0B2F6E] via-[#092557] to-[#1E40AF]"
-            : "bg-gradient-to-br from-slate-800 via-sky-900 to-[#0B2F6E]"
-        }`}
-      >
-        <span
-          className={`rounded-lg px-2.5 py-1 text-[11px] font-black uppercase tracking-wider text-white shadow-sm ${
-            isNeed ? "bg-[#FF6B00]" : "bg-[#0B2F6E]"
-          }`}
-        >
-          {opportunity.type}
-        </span>
-        {urgent && (
-          <span className="ml-2 inline-flex animate-pulse items-center gap-1 rounded-lg bg-red-600 px-2 py-1 text-[10px] font-extrabold text-white">
-            <Flame className="h-3 w-3" /> URGENT
-          </span>
-        )}
-      </div>
+  const renderCategory = (category: any): string => {
+    if (!category) return "Business";
+    if (typeof category === "string") return category;
+    if (typeof category === "object") {
+      return category.name || category.title || category.id || "Business";
+    }
+    return "Business";
+  };
 
-      <div className="flex flex-1 flex-col p-5">
-        <div className="mb-2 flex items-center justify-between text-[11px] font-semibold text-slate-400">
-          <span className="flex items-center gap-1">
-            <Clock className="h-3.5 w-3.5" />
-            {opportunity.timeAgo}
+  const renderPublisher = (publisher: any): string => {
+    if (!publisher) return "Mitra Sinaptex";
+    if (typeof publisher === "string") return publisher;
+    if (typeof publisher === "object") {
+      return publisher.name || publisher.companyName || "Mitra Sinaptex";
+    }
+    return "Mitra Sinaptex";
+  };
+
+  const publisherName = renderPublisher(opportunity.publisher);
+
+  return (
+    <article className="group flex h-full flex-col overflow-hidden rounded-3xl border border-slate-200/80 bg-white/90 shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:border-slate-300 hover:shadow-xl hover:shadow-slate-200/60 backdrop-blur-xl">
+      {/* Card Header Tag Bar */}
+      <div className="flex items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/50 px-5 py-3">
+        <div className="flex items-center gap-2">
+          {/* Badge Need / Offer */}
+          <span
+            className={`rounded-lg px-2.5 py-1 text-[11px] font-bold tracking-wider uppercase ${
+              isNeed
+                ? "bg-amber-500/10 text-[#FF6B00] border border-amber-500/20"
+                : "bg-[#0B2F6E]/10 text-[#0B2F6E] border border-[#0B2F6E]/20"
+            }`}
+          >
+            {isNeed ? "Need" : "Offer"}
           </span>
-          {opportunity.views != null && opportunity.views > 0 && (
-            <span className="flex items-center gap-1">
-              <EyeIcon className="h-3.5 w-3.5" />
-              {opportunity.views} dilihat
+
+          {/* Badge Urgent jika urgent */}
+          {urgent && (
+            <span className="inline-flex items-center gap-1 rounded-lg bg-red-500/10 px-2 py-1 text-[11px] font-bold text-red-600 border border-red-500/20">
+              <Flame className="h-3 w-3 fill-red-500 text-red-500" />
+              Mendesak
             </span>
           )}
         </div>
 
-        <h3 className="line-clamp-2 text-base font-extrabold leading-snug text-slate-900 group-hover:text-[#0B2F6E]">
+        {/* Time & Views */}
+        <div className="flex items-center gap-3 text-[11px] font-medium text-slate-400">
+          {opportunity.timeAgo && (
+            <span className="inline-flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              {opportunity.timeAgo}
+            </span>
+          )}
+          {opportunity.views !== undefined && (
+            <span className="inline-flex items-center gap-1">
+              <EyeIcon className="h-3 w-3" />
+              {opportunity.views}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Card Content Body */}
+      <div className="flex flex-1 flex-col p-5">
+        <h3 className="text-base font-bold text-slate-900 transition-colors duration-200 group-hover:text-[#0B2F6E] line-clamp-2">
           {opportunity.title}
         </h3>
+
         {opportunity.description && (
-          <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-slate-500">
+          <p className="mt-2 text-xs leading-relaxed text-slate-500 line-clamp-2">
             {opportunity.description}
           </p>
         )}
 
-        <div className="mt-4 flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-600">
-          {opportunity.category && (
-            <div className="flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1">
-              <Tag className="h-3.5 w-3.5 text-slate-500" />
-              <span>{opportunity.category}</span>
-            </div>
-          )}
+        {/* Budget Section */}
+        <div className="mt-4 flex items-center gap-2 rounded-2xl bg-slate-50 p-3 border border-slate-100">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-[#FF6B00]">
+            <Wallet className="h-4 w-4" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+              {isNeed ? "Alokasi Anggaran" : "Perkiraan Harga"}
+            </p>
+            <p className="truncate text-xs sm:text-sm font-extrabold text-[#0B2F6E]">
+              {opportunity.budget}
+            </p>
+          </div>
+        </div>
+
+        {/* Category & Location */}
+        <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-600">
+          <div className="flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1 text-slate-700">
+            <Tag className="h-3.5 w-3.5 text-slate-400" />
+            <span>{renderCategory(opportunity.category)}</span>
+          </div>
+
           {opportunity.location && (
-            <div className="flex items-center gap-1.5 text-slate-500">
+            <div className="flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1 text-slate-500">
               <MapPin className="h-3.5 w-3.5 text-slate-400" />
               <span>{opportunity.location}</span>
             </div>
           )}
         </div>
 
-        {opportunity.budget && (
-          <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50 p-3">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              Estimasi Budget / Harga
-            </p>
-            <div className="mt-1 flex items-center gap-2">
-              <Wallet className="h-4 w-4 text-[#0B2F6E]" />
-              <span className="text-sm font-extrabold text-slate-900">{opportunity.budget}</span>
-            </div>
-          </div>
-        )}
-
+        {/* Footer Publisher & Detail Button */}
         <div className="mt-auto pt-5">
           <div className="flex items-center justify-between gap-2 border-t border-slate-100 pt-3.5">
             <div className="flex min-w-0 items-center gap-2.5">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#0B2F6E] text-xs font-extrabold text-white">
-                {(opportunity.publisher || "P").charAt(0).toUpperCase()}
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#0B2F6E] text-xs font-extrabold text-white shadow-sm shadow-[#0B2F6E]/20">
+                {publisherName.charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-1">
                   <span className="truncate text-xs font-bold text-slate-800">
-                    {opportunity.publisher}
+                    {publisherName}
                   </span>
                   {opportunity.verified && (
                     <BadgeCheck className="h-4 w-4 shrink-0 text-blue-600" />
                   )}
                 </div>
-                <span className="text-[10px] font-semibold text-slate-400">Mitra</span>
+                <span className="text-[10px] font-semibold text-slate-400">
+                  Mitra Terverifikasi
+                </span>
               </div>
             </div>
+
             <Link
               href={detailHref(opportunity.id)}
-              className="flex h-9 items-center gap-1 rounded-xl bg-blue-50 px-3 text-xs font-bold text-[#0B2F6E] transition-colors group-hover:bg-[#0B2F6E] group-hover:text-white"
+              className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-blue-50 px-3.5 text-xs font-bold text-[#0B2F6E] transition-all duration-200 group-hover:bg-[#0B2F6E] group-hover:text-white group-hover:shadow-md"
             >
               <span>Detail</span>
-              <ArrowRight className="h-3.5 w-3.5" />
+              <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
             </Link>
           </div>
         </div>
@@ -359,76 +389,135 @@ export default function LandingPage() {
     : list;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-blue-50">
+    <div className="relative min-h-screen overflow-hidden bg-slate-50/50">
+      {/* Background Ambient Glows */}
+      <div className="pointer-events-none absolute -top-40 -left-40 h-[30rem] w-[30rem] rounded-full bg-blue-500/10 blur-3xl" />
+      <div className="pointer-events-none absolute top-1/3 -right-40 h-[30rem] w-[30rem] rounded-full bg-amber-500/10 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-40 left-1/4 h-[30rem] w-[30rem] rounded-full bg-blue-500/10 blur-3xl" />
+
+      {/* Navigation Navbar */}
       <DynamicNavbar />
 
-      <section className="mx-auto max-w-7xl px-4 pb-8 pt-10 sm:px-6 lg:px-8">
+      {/* Hero Section */}
+      <section className="relative mx-auto max-w-7xl px-4 pb-12 pt-12 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl text-center">
-          <h1 className="text-3xl font-black tracking-tight text-[#0B2F6E] sm:text-4xl">
-            Ekosistem bisnis dan layanan cerdas
+          {/* Badge Tagline */}
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#0B2F6E]/15 bg-white/80 px-4 py-1.5 text-xs font-bold text-[#0B2F6E] shadow-sm backdrop-blur-md">
+            <Image
+              src="/icons/icon-maskable.svg"
+              alt="Sinaptex Logo"
+              width={18}
+              height={18}
+              className="h-4 w-4 rounded-md object-contain"
+            />
+            <span>Ekosistem Bisnis & Layanan Cerdas</span>
+            <span className="rounded-md bg-[#0B2F6E]/10 px-1.5 py-0.5 text-[10px] font-extrabold text-[#0B2F6E]">
+              B2B
+            </span>
+          </div>
+
+          <h1 className="text-3xl font-black tracking-tight text-[#0B2F6E] sm:text-5xl sm:leading-tight">
+            Hubungkan Kebutuhan & Penawaran Bisnis Anda
           </h1>
-          <p className="mt-3 text-sm text-slate-600 sm:text-base">
-            Temukan Need & Offer, matching mitra, chat, dan deal dalam satu platform Sinaptex.
+          <p className="mt-4 text-sm leading-relaxed text-slate-600 sm:text-base">
+            Temukan <span className="font-semibold text-[#FF6B00]">Need & Offer</span>, matching mitra cerdas, komunikasi langsung, dan transaksi aman dalam satu platform terpadu.
           </p>
+
+          {/* Search Bar Form */}
           <form
             onSubmit={(e) => e.preventDefault()}
-            className="mt-6 flex gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm"
+            className="mt-8 flex flex-col gap-2 rounded-3xl border border-slate-200/80 bg-white/90 p-2.5 shadow-xl shadow-slate-200/50 backdrop-blur-xl sm:flex-row sm:items-center"
           >
             <div className="relative flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Cari peluang bisnis..."
-                className="w-full rounded-xl border-0 bg-slate-50 py-3 pl-10 pr-3 text-sm outline-none focus:ring-2 focus:ring-[#0B2F6E]/20"
+                placeholder="Cari peluang bisnis, kemasan, maklon, agensi..."
+                className="w-full rounded-2xl border-0 bg-slate-50/80 py-3.5 pl-11 pr-4 text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-[#0B2F6E]/20"
               />
             </div>
             <Link
               href="/marketplace"
-              className="rounded-xl bg-[#0B2F6E] px-5 py-3 text-sm font-bold text-white hover:bg-[#082352]"
+              className="flex items-center justify-center gap-2 rounded-2xl bg-[#0B2F6E] px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-[#0B2F6E]/20 transition-all duration-200 hover:bg-[#082352] hover:shadow-xl active:scale-[0.99]"
             >
-              Jelajahi
+              <span>Jelajahi Peluang</span>
+              <ArrowRight className="h-4 w-4" />
             </Link>
           </form>
+
+          {/* Quick Metrics */}
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-xs font-semibold text-slate-500">
+            <span className="flex items-center gap-1.5">
+              <CheckCircle2 className="h-4 w-4 text-[#FF6B00]" /> 1,200+ Mitra Terverifikasi
+            </span>
+            <span className="flex items-center gap-1.5">
+              <TrendingUp className="h-4 w-4 text-blue-600" /> Matching Cepat & Akurat
+            </span>
+            <span className="flex items-center gap-1.5">
+              <ShieldCheck className="h-4 w-4 text-emerald-600" /> Transaksi Terjamin
+            </span>
+          </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-6 flex items-end justify-between gap-3">
+      {/* Peluang Terbaru Section */}
+      <section className="relative mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
-            <h2 className="text-xl font-bold text-[#0B2F6E]">Peluang terbaru</h2>
-            <p className="text-sm text-slate-500">
-              {isLoading ? "Memuat..." : `${filtered.length} peluang ditampilkan`}
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-[#FF6B00]" />
+              <span className="text-xs font-bold uppercase tracking-wider text-[#FF6B00]">
+                Update Real-time
+              </span>
+            </div>
+            <h2 className="mt-1 text-2xl font-black text-[#0B2F6E]">Peluang Terbaru</h2>
+            <p className="text-xs sm:text-sm text-slate-500">
+              {isLoading ? "Memuat peluang bisnis..." : `${filtered.length} peluang bisnis siap ditindaklanjuti`}
             </p>
           </div>
-          <Link href="/marketplace" className="text-sm font-semibold text-[#FF6B00] hover:underline">
-            Lihat semua →
+          <Link
+            href="/marketplace"
+            className="inline-flex items-center gap-1 text-sm font-bold text-[#FF6B00] transition-colors hover:text-amber-600 hover:underline"
+          >
+            <span>Lihat Semua Peluang</span>
+            <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
 
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {/* Opportunities Grid */}
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((opp) => (
             <OpportunityCard key={opp.id} opportunity={opp} />
           ))}
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <h2 className="mb-6 text-xl font-bold text-[#0B2F6E]">Kategori</h2>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {/* Kategori Section */}
+      <section className="relative mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+        <div className="mb-8 text-center sm:text-left">
+          <h2 className="text-2xl font-black text-[#0B2F6E]">Kategori Bisnis Populer</h2>
+          <p className="mt-1 text-xs sm:text-sm text-slate-500">
+            Jelajahi berbagai bidang spesialisasi sektor bisnis B2B
+          </p>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {(categories ?? staticCategories).map((cat) => {
             const Icon = iconMap[cat.icon] || Briefcase;
             return (
               <div
                 key={String(cat.id)}
-                className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4"
+                className="group flex items-center gap-4 rounded-3xl border border-slate-200/80 bg-white/90 p-4 shadow-sm backdrop-blur-xl transition-all duration-200 hover:-translate-y-1 hover:border-[#0B2F6E]/30 hover:shadow-md"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-[#0B2F6E]">
-                  <Icon className="h-5 w-5" />
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#0B2F6E]/10 text-[#0B2F6E] transition-colors group-hover:bg-[#0B2F6E] group-hover:text-white">
+                  <Icon className="h-6 w-6" />
                 </div>
-                <div>
-                  <p className="font-semibold text-slate-900">{cat.title}</p>
-                  <p className="text-xs text-slate-500">{cat.count}</p>
+                <div className="min-w-0">
+                  <p className="font-bold text-slate-900 group-hover:text-[#0B2F6E]">
+                    {cat.title}
+                  </p>
+                  <p className="text-xs font-medium text-slate-500">{cat.count}</p>
                 </div>
               </div>
             );
@@ -436,64 +525,116 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="border-t border-slate-200 bg-white py-12">
-        <div className="mx-auto grid max-w-7xl gap-6 px-4 sm:grid-cols-2 lg:grid-cols-4 sm:px-6 lg:px-8">
-          {[
-            {
-              title: "Peluang Terverifikasi",
-              desc: "Setiap peluang diverifikasi untuk menjaga kualitas.",
-              icon: CheckCircle2,
-            },
-            {
-              title: "Partner Terpercaya",
-              desc: "Temukan partner sesuai kebutuhan dan lokasi.",
-              icon: Users,
-            },
-            {
-              title: "Aman & Terpercaya",
-              desc: "Data terlindungi dan proses terjamin.",
-              icon: ShieldCheck,
-            },
-            {
-              title: "Proses Lebih Cepat",
-              desc: "Matching digital yang efisien.",
-              icon: Sparkles,
-            },
-          ].map((b) => (
-            <div key={b.title} className="rounded-2xl border border-slate-100 p-5">
-              <b.icon className="h-6 w-6 text-[#0B2F6E]" />
-              <h3 className="mt-3 font-bold text-slate-900">{b.title}</h3>
-              <p className="mt-1 text-sm text-slate-500">{b.desc}</p>
-            </div>
-          ))}
+      {/* Keunggulan Platform Section */}
+      <section className="relative border-y border-slate-200/80 bg-white/80 py-16 backdrop-blur-xl">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mb-12 text-center">
+            <h2 className="text-2xl font-black text-[#0B2F6E] sm:text-3xl">
+              Mengapa Memilih Sinaptex?
+            </h2>
+            <p className="mt-2 text-xs sm:text-sm text-slate-500">
+              Dirancang khusus untuk efisiensi dan keamanan kolaborasi antar perusahaan
+            </p>
+          </div>
+
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              {
+                title: "Peluang Terverifikasi",
+                desc: "Setiap permintaan dan penawaran divalidasi untuk menjamin keseriusan mitra.",
+                icon: CheckCircle2,
+              },
+              {
+                title: "Partner Terpercaya",
+                desc: "Filter profil perusahaan, reputasi, dan rekam jejak secara rinci.",
+                icon: Users,
+              },
+              {
+                title: "Aman & Terlindungi",
+                desc: "Keamanan data, privasi dokumen, dan proses transaksi terjamin.",
+                icon: ShieldCheck,
+              },
+              {
+                title: "Matching Cerdas",
+                desc: "Sistem mencocokkan kriteria kebutuhan bisnis Anda dengan presisi tinggi.",
+                icon: Sparkles,
+              },
+            ].map((b) => (
+              <div
+                key={b.title}
+                className="group rounded-3xl border border-slate-200/80 bg-slate-50/50 p-6 shadow-xs transition-all duration-200 hover:border-slate-300 hover:bg-white hover:shadow-lg"
+              >
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0B2F6E] text-white shadow-md shadow-[#0B2F6E]/20">
+                  <b.icon className="h-6 w-6" />
+                </div>
+                <h3 className="mt-4 text-base font-bold text-slate-900 group-hover:text-[#0B2F6E]">
+                  {b.title}
+                </h3>
+                <p className="mt-2 text-xs leading-relaxed text-slate-500">{b.desc}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <h2 className="mb-8 text-center text-xl font-bold text-[#0B2F6E]">Cara kerja</h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Cara Kerja Section */}
+      <section className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mb-12 text-center">
+          <h2 className="text-2xl font-black text-[#0B2F6E] sm:text-3xl">Cara Kerja Platform</h2>
+          <p className="mt-2 text-xs sm:text-sm text-slate-500">
+            4 Langkah mudah memulai kolaborasi bisnis di Sinaptex
+          </p>
+        </div>
+
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { num: "1", icon: UserPlus, title: "Daftar Gratis", desc: "Buat akun dalam hitungan detik." },
-            { num: "2", icon: Search, title: "Temukan Peluang", desc: "Cari Need atau Offer." },
-            { num: "3", icon: MessageSquare, title: "Hubungi & Match", desc: "Undang atau chat mitra." },
-            { num: "4", icon: CheckCircle2, title: "Kerja Sama", desc: "Deal dan kembangkan bisnis." },
+            {
+              num: "01",
+              icon: UserPlus,
+              title: "Buat Akun",
+              desc: "Daftar gratis dalam hitungan detik dan lengkapi profil bisnis Anda.",
+            },
+            {
+              num: "02",
+              icon: Search,
+              title: "Jelajahi / Buat Peluang",
+              desc: "Pasang Need/Offer Anda atau cari listing peluang yang tersedia.",
+            },
+            {
+              num: "03",
+              icon: MessageSquare,
+              title: "Komunikasi & Match",
+              desc: "Diskusikan detail kerjasama secara langsung via fitur pesan.",
+            },
+            {
+              num: "04",
+              icon: CheckCircle2,
+              title: "Kesepakatan Deal",
+              desc: "Sepakati penawaran dan kembangkan jangkauan bisnis Anda.",
+            },
           ].map((s) => (
-            <div key={s.num} className="rounded-2xl border border-slate-200 bg-white p-5 text-center">
-              <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-[#FF6B00] text-sm font-bold text-white">
+            <div
+              key={s.num}
+              className="relative rounded-3xl border border-slate-200/80 bg-white/90 p-6 text-center shadow-sm backdrop-blur-xl transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
+            >
+              <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-[#FF6B00]/10 text-xs font-black text-[#FF6B00]">
                 {s.num}
               </div>
-              <s.icon className="mx-auto mt-3 h-5 w-5 text-[#0B2F6E]" />
-              <h3 className="mt-2 font-bold text-slate-900">{s.title}</h3>
-              <p className="mt-1 text-xs text-slate-500">{s.desc}</p>
+              <s.icon className="mx-auto mt-4 h-6 w-6 text-[#0B2F6E]" />
+              <h3 className="mt-3 text-base font-bold text-slate-900">{s.title}</h3>
+              <p className="mt-1.5 text-xs leading-relaxed text-slate-500">{s.desc}</p>
             </div>
           ))}
         </div>
-        <div className="mt-10 text-center">
+
+        {/* CTA Button Bottom */}
+        <div className="mt-12 text-center">
           <Link
             href="/register"
-            className="inline-flex rounded-xl bg-[#0B2F6E] px-6 py-3 text-sm font-bold text-white hover:bg-[#082352]"
+            className="inline-flex items-center gap-2 rounded-2xl bg-[#FF6B00] px-8 py-3.5 text-sm font-bold text-white shadow-lg shadow-[#FF6B00]/25 transition-all duration-200 hover:bg-orange-600 hover:shadow-xl active:scale-[0.98]"
           >
-            Mulai gratis
+            <span>Mulai Sekarang — Gratis</span>
+            <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
       </section>

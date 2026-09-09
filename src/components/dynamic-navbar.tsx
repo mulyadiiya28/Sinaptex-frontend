@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -18,57 +18,6 @@ import {
   Loader2,
   MessageSquare,
 } from "lucide-react";
-/* ═══════════════════════════════════════════════
-   API CONTRACT / TYPE DEFINITIONS
-   ═══════════════════════════════════════════════
-
-   Backend harus menyediakan endpoint:
-
-   GET /api/v1/navigation/public
-
-   Response:
-   {
-     "success": true,
-     "data": [
-       {
-         "id": "nav-001",
-         "label": "Beranda",
-         "labelEn": "Home",
-         "href": "/",
-         "icon": "Home",
-         "position": "primary",
-         "order": 1,
-         "isExternal": false,
-         "children": []
-       },
-       {
-         "id": "nav-002",
-         "label": "Marketplace",
-         "labelEn": "Marketplace",
-         "href": "/marketplace",
-         "icon": "Store",
-         "position": "primary",
-         "order": 2,
-         "isExternal": false,
-         "children": [
-           {
-             "id": "nav-002-1",
-             "label": "Kebutuhan (Need)",
-             "href": "/marketplace?type=need",
-             "icon": "Briefcase"
-           },
-           {
-             "id": "nav-002-2",
-             "label": "Penawaran (Offer)",
-             "href": "/marketplace?type=offer",
-             "icon": "Store"
-           }
-         ]
-       }
-     ]
-   }
-
-   ═══════════════════════════════════════════════ */
 
 export interface NavItemChild {
   id: string;
@@ -93,15 +42,6 @@ export interface NavItem {
   requiresAuth?: boolean;
 }
 
-export interface NavigationResponse {
-  success: boolean;
-  data: NavItem[];
-}
-
-/* ═══════════════════════════════════════════════
-   ICON MAPPER
-   ═══════════════════════════════════════════════ */
-
 const iconMap: Record<string, React.ElementType> = {
   Home,
   Store,
@@ -120,10 +60,6 @@ function NavIcon({ name, className }: { name?: string; className?: string }) {
   if (!Icon) return null;
   return <Icon className={className} />;
 }
-
-/* ═══════════════════════════════════════════════
-   STATIC FALLBACK DATA (Public Content)
-   ═══════════════════════════════════════════════ */
 
 const staticNavItems: NavItem[] = [
   {
@@ -178,7 +114,7 @@ const staticNavItems: NavItem[] = [
     href: "/opportunities",
     icon: "Briefcase",
     position: "primary",
-    order: 3,
+    order: 4,
   },
   {
     id: "nav-about",
@@ -187,7 +123,7 @@ const staticNavItems: NavItem[] = [
     href: "/about",
     icon: "Info",
     position: "primary",
-    order: 4,
+    order: 5,
   },
   {
     id: "nav-help",
@@ -196,7 +132,7 @@ const staticNavItems: NavItem[] = [
     href: "/help",
     icon: "HelpCircle",
     position: "secondary",
-    order: 5,
+    order: 6,
   },
   {
     id: "nav-contact",
@@ -205,38 +141,18 @@ const staticNavItems: NavItem[] = [
     href: "/contact",
     icon: "Phone",
     position: "secondary",
-    order: 6,
+    order: 7,
   },
 ];
-
-/* ═══════════════════════════════════════════════
-   API FETCHER
-
-   NOTE: GET /api/v1/navigation/public TIDAK ada di backend
-   (dikonfirmasi — modul navigasi dinamis di atas cuma kontrak/desain,
-   belum pernah diimplementasikan di API). useQuery di bawah selalu retry
-   lalu diam-diam fallback ke staticNavItems, jadi request-nya sia-sia
-   setiap kali navbar dirender. Sekarang langsung pakai staticNavItems.
-   Kalau backend nanti implementasi endpoint ini sesuai kontrak di atas,
-   tinggal aktifkan lagi fetchNavigation() + useQuery di bawah.
-   ═══════════════════════════════════════════════ */
 
 async function fetchNavigation(): Promise<NavItem[]> {
   return staticNavItems;
 }
 
-/* ═══════════════════════════════════════════════
-   DYNAMIC NAVBAR COMPONENT
-   ═══════════════════════════════════════════════ */
-
 interface DynamicNavbarProps {
-  /** Override nav items dari parent (opsional) */
   items?: NavItem[];
-  /** Bahasa aktif: 'id' | 'en' */
   language?: "id" | "en";
-  /** Callback saat language berubah */
   onLanguageChange?: (lang: "id" | "en") => void;
-  /** Tampilkan tombol auth? */
   showAuth?: boolean;
 }
 
@@ -250,8 +166,22 @@ export function DynamicNavbar({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [langDropdownOpen, setLangDropdownOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const langDropdownRef = useRef<HTMLDivElement>(null);
 
-  /* ── Fetch dari API ── */
+  // Close language dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        langDropdownRef.current &&
+        !langDropdownRef.current.contains(event.target as Node)
+      ) {
+        setLangDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const {
     data: fetchedItems,
     isLoading,
@@ -259,14 +189,13 @@ export function DynamicNavbar({
   } = useQuery({
     queryKey: ["navigation", "public"],
     queryFn: fetchNavigation,
-    staleTime: 5 * 60 * 1000, // 5 menit cache
+    staleTime: 5 * 60 * 1000,
     retry: 1,
-    enabled: !propItems, // Jika prop items diberikan, skip fetch
+    enabled: !propItems,
   });
 
   const navItems = propItems ?? fetchedItems ?? staticNavItems;
 
-  /* ── Filter public items only ── */
   const primaryItems = navItems
     .filter((item) => item.position === "primary" && !item.requiresAuth)
     .sort((a, b) => a.order - b.order);
@@ -275,13 +204,13 @@ export function DynamicNavbar({
     .filter((item) => item.position === "secondary" && !item.requiresAuth)
     .sort((a, b) => a.order - b.order);
 
-  /* ── Helper: active state ── */
+  // Normalisasi check active path dengan mengabaikan query param
   const isActive = (href: string) => {
-    if (href === "/") return pathname === "/";
-    return pathname.startsWith(href);
+    const basePath = href.split("?")[0];
+    if (basePath === "/") return pathname === "/";
+    return pathname.startsWith(basePath);
   };
 
-  /* ── Helper: label berdasarkan bahasa ── */
   const getLabel = (item: NavItem | NavItemChild) => {
     return language === "en" && item.labelEn ? item.labelEn : item.label;
   };
@@ -315,7 +244,6 @@ export function DynamicNavbar({
             primaryItems.map((item) => (
               <div key={item.id} className="relative">
                 {item.children && item.children.length > 0 ? (
-                  /* Dropdown Menu */
                   <div
                     className="relative"
                     onMouseEnter={() => setOpenDropdown(item.id)}
@@ -327,6 +255,7 @@ export function DynamicNavbar({
                           ? "text-[#0B2F6E] bg-blue-50/50"
                           : "text-slate-600 hover:text-[#0B2F6E] hover:bg-slate-50"
                       }`}
+                      aria-expanded={openDropdown === item.id}
                     >
                       <NavIcon name={item.icon} className="h-3.5 w-3.5" />
                       {getLabel(item)}
@@ -344,6 +273,7 @@ export function DynamicNavbar({
                           <Link
                             key={child.id}
                             href={child.href}
+                            onClick={() => setOpenDropdown(null)}
                             className="flex items-start gap-3 px-4 py-2.5 text-xs transition-colors hover:bg-blue-50"
                           >
                             <div className="mt-0.5 shrink-0">
@@ -361,7 +291,6 @@ export function DynamicNavbar({
                     )}
                   </div>
                 ) : (
-                  /* Single Link */
                   <Link
                     href={item.href}
                     target={item.isExternal ? "_blank" : undefined}
@@ -394,11 +323,11 @@ export function DynamicNavbar({
 
         {/* Right Side: Language + Auth */}
         <div className="hidden items-center gap-3 lg:flex">
-          {/* Language Switcher */}
-          <div className="relative">
+          <div className="relative" ref={langDropdownRef}>
             <button
               onClick={() => setLangDropdownOpen(!langDropdownOpen)}
               className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              aria-label="Switch Language"
             >
               <Globe className="h-3.5 w-3.5 text-slate-500" />
               <span>{language.toUpperCase()}</span>
@@ -432,7 +361,6 @@ export function DynamicNavbar({
             )}
           </div>
 
-          {/* Auth Buttons */}
           {showAuth && (
             <>
               <Link
@@ -455,6 +383,7 @@ export function DynamicNavbar({
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           className="rounded-xl p-2 text-slate-600 hover:bg-slate-100 lg:hidden"
+          aria-label="Toggle Menu"
         >
           {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
@@ -504,10 +433,8 @@ export function DynamicNavbar({
               </div>
             ))}
 
-            {/* Divider */}
             <div className="my-2 border-t border-slate-100" />
 
-            {/* Secondary Items */}
             {secondaryItems.map((item) => (
               <Link
                 key={item.id}
@@ -520,7 +447,6 @@ export function DynamicNavbar({
               </Link>
             ))}
 
-            {/* Mobile Auth */}
             {showAuth && (
               <div className="mt-3 flex flex-col gap-2">
                 <Link
@@ -545,9 +471,5 @@ export function DynamicNavbar({
     </header>
   );
 }
-
-/* ═══════════════════════════════════════════════
-   EXPORT DEFAULT
-   ═══════════════════════════════════════════════ */
 
 export default DynamicNavbar;
