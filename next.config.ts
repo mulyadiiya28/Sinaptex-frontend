@@ -55,7 +55,6 @@ const nextConfig: NextConfig = {
     ],
     formats: ["image/avif", "image/webp"],
   },
-  output: "standalone",
   turbopack: {},
 };
 
