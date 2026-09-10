@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { PanelLeftClose, PanelLeftOpen, LogOut } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, LogOut, LogIn } from "lucide-react";
 import { useUIStore } from "@/store/use-ui-store";
 import { useSessionStore } from "@/store/use-session-store";
 import { useSignOut } from "@/features/auth/auth.hooks";
@@ -52,15 +52,26 @@ export function AppHeader() {
             )}
           </span>
         )}
-        <button
-          type="button"
-          onClick={handleLogout}
-          disabled={signOut.isPending}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-700 transition hover:bg-slate-100 disabled:opacity-60"
-        >
-          <LogOut className="h-3.5 w-3.5" />
-          {signOut.isPending ? "Keluar…" : "Keluar"}
-        </button>
+        {me ? (
+          <button
+            type="button"
+            onClick={handleLogout}
+            disabled={signOut.isPending}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-700 transition hover:bg-slate-100 disabled:opacity-60"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            {signOut.isPending ? "Keluar…" : "Keluar"}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => router.push("/login")}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-[#0B2F6E] px-3 py-1.5 text-sm font-medium text-white transition hover:bg-[#082352]"
+          >
+            <LogIn className="h-3.5 w-3.5" />
+            Masuk
+          </button>
+        )}
       </div>
     </header>
   );

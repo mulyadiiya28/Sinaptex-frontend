@@ -93,5 +93,4 @@ export type CreatePartyInput = z.infer<typeof createPartySchema>;
 export const updatePartySchema = createPartySchema
   .omit({ capabilityNames: true, businessRoles: true })
   .partial();
-
 export type UpdatePartyInput = z.infer<typeof updatePartySchema>;

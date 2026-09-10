@@ -9,11 +9,12 @@ export const chatKeys = {
   messages: (conversationId: string) => ["chat", "messages", conversationId] as const,
 };
 
-export function useConversations() {
+export function useConversations(enabled: boolean = true) {
   return useQuery({
     queryKey: chatKeys.conversations,
     queryFn: chatApi.listConversations,
     refetchInterval: 10_000,
+    enabled,
   });
 }
 

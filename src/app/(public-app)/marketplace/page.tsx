@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useCallback } from "react";
 import Link from "next/link";
-import { Search, MapPin, ChevronLeft, ChevronRight, SlidersHorizontal, X, TrendingUp, Clock, ShieldCheck } from "lucide-react";
+import { Search, MapPin, ChevronLeft, ChevronRight, SlidersHorizontal, X, TrendingUp, Clock, ShieldCheck, MessageSquare } from "lucide-react";
 import { useMarketplace } from "@/features/opportunity/opportunity.hooks";
 import {
   MarketplaceListParams,
@@ -265,7 +265,14 @@ export default function MarketplacePage() {
       {!isLoading && items.length > 0 && (
         <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((opp) => (
-            <li key={opp.id} className="group">
+            <li key={opp.id} className="group relative">
+              <Link
+                href={`/chat?opportunityId=${opp.id}`}
+                className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-lg bg-white/95 text-zinc-500 shadow-sm ring-1 ring-zinc-200 transition hover:text-blue-600 dark:bg-zinc-800/95 dark:text-zinc-400 dark:ring-zinc-700"
+                title="Chat terkait opportunity ini (perlu login)"
+              >
+                <MessageSquare className="h-4 w-4" />
+              </Link>
               <Link
                 href={`/marketplace/${opp.id}`}
                 className="flex h-full flex-col rounded-2xl border border-zinc-200 bg-white p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"

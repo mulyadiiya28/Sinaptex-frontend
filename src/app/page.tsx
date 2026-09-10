@@ -219,6 +219,12 @@ async function fetchOpportunities(): Promise<Opportunity[]> {
   return staticOpportunities;
 }
 
+// NOTE: GET /api/v1/categories TIDAK ada di backend (dikonfirmasi — modul
+// "Categories" memang belum diimplementasikan di API). Sebelumnya kode ini
+// tetap memanggil endpoint tsb dan diam-diam fallback ke staticCategories
+// tiap kali gagal — artinya SELALU fallback, request-nya sia-sia. Sekarang
+// langsung pakai staticCategories saja. Kalau backend nanti menyediakan
+// endpoint ini, tinggal aktifkan lagi pemanggilan API-nya di sini.
 async function fetchCategories(): Promise<Category[]> {
   return staticCategories;
 }
@@ -354,13 +360,26 @@ function OpportunityCard({ opportunity }: { opportunity: Opportunity }) {
               </div>
             </div>
 
-            <Link
-              href={detailHref(opportunity.id)}
-              className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-blue-50 px-3.5 text-xs font-bold text-[#0B2F6E] transition-all duration-200 group-hover:bg-[#0B2F6E] group-hover:text-white group-hover:shadow-md"
-            >
-              <span>Detail</span>
-              <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link
+                href={
+                  isStaticDemoId(opportunity.id)
+                    ? `/login?redirect=${encodeURIComponent("/marketplace")}`
+                    : `/chat?opportunityId=${opportunity.id}`
+                }
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition-colors hover:border-[#0B2F6E]/30 hover:text-[#0B2F6E]"
+                title="Chat terkait opportunity ini (perlu login)"
+              >
+                <MessageSquare className="h-4 w-4" />
+              </Link>
+              <Link
+                href={detailHref(opportunity.id)}
+                className="flex h-9 items-center gap-1 rounded-xl bg-blue-50 px-3 text-xs font-bold text-[#0B2F6E] transition-colors group-hover:bg-[#0B2F6E] group-hover:text-white"
+              >
+                <span>Detail</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
           </div>
         </div>
       </div>
