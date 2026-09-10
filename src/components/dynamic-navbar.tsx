@@ -18,6 +18,7 @@ import {
   Loader2,
   MessageSquare,
 } from "lucide-react";
+import { SinaptexLogo } from "@/components/sinaptex-logo";
 
 export interface NavItemChild {
   id: string;
@@ -218,24 +219,16 @@ export function DynamicNavbar({
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-200/80 bg-white/95 backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3.5 sm:px-6 lg:px-8">
-        {/* Logo */}
+        {/* Logo — pakai komponen resmi SinaptexLogo (ambil aset dari public/icons/),
+    bukan SVG hardcode, supaya konsisten dengan brand mark asli di seluruh app. */}
         <Link href="/" className="flex items-center gap-2.5 shrink-0">
-          <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-[#0B2F6E] via-[#092557] to-[#FF6B00] p-0.5 shadow-md">
-            <div className="flex h-full w-full items-center justify-center rounded-[10px] bg-white">
-              <svg viewBox="0 0 32 32" className="h-6 w-6" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M8 22C8 18.6863 10.6863 16 14 16H18C21.3137 16 24 13.3137 24 10C24 6.68629 21.3137 4 18 4H10" stroke="#0B2F6E" strokeWidth="4" strokeLinecap="round" />
-                <path d="M24 10C24 13.3137 21.3137 16 18 16H14C10.6863 16 8 18.6863 8 22C8 25.3137 10.6863 28 14 28H22" stroke="#FF6B00" strokeWidth="4" strokeLinecap="round" />
-              </svg>
-            </div>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-xl font-black tracking-tight text-[#0B2F6E] leading-none">Sinaptex</span>
-            <span className="text-[10px] font-semibold text-slate-500 tracking-wider hidden sm:block">
-              {language === "en" ? "Smart Business Ecosystem" : "Ekosistem Bisnis Cerdas"}
-            </span>
-          </div>
+          <SinaptexLogo
+            variant="horizontal"
+            size="sm"
+            theme="light"
+            taglineText={language === "en" ? "Smart Business Ecosystem" : "Ekosistem Bisnis Cerdas"}
+          />
         </Link>
-
         {/* Desktop Navigation */}
         <nav className="hidden items-center gap-1 lg:flex">
           {isLoading ? (
@@ -250,11 +243,10 @@ export function DynamicNavbar({
                     onMouseLeave={() => setOpenDropdown(null)}
                   >
                     <button
-                      className={`flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${
-                        isActive(item.href)
-                          ? "text-[#0B2F6E] bg-blue-50/50"
-                          : "text-slate-600 hover:text-[#0B2F6E] hover:bg-slate-50"
-                      }`}
+                      className={`flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${isActive(item.href)
+                        ? "text-[#0B2F6E] bg-blue-50/50"
+                        : "text-slate-600 hover:text-[#0B2F6E] hover:bg-slate-50"
+                        }`}
                       aria-expanded={openDropdown === item.id}
                     >
                       <NavIcon name={item.icon} className="h-3.5 w-3.5" />
@@ -295,11 +287,10 @@ export function DynamicNavbar({
                     href={item.href}
                     target={item.isExternal ? "_blank" : undefined}
                     rel={item.isExternal ? "noopener noreferrer" : undefined}
-                    className={`flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${
-                      isActive(item.href)
-                        ? "text-[#0B2F6E] bg-blue-50/50 font-bold"
-                        : "text-slate-600 hover:text-[#0B2F6E] hover:bg-slate-50"
-                    }`}
+                    className={`flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${isActive(item.href)
+                      ? "text-[#0B2F6E] bg-blue-50/50 font-bold"
+                      : "text-slate-600 hover:text-[#0B2F6E] hover:bg-slate-50"
+                      }`}
                   >
                     <NavIcon name={item.icon} className="h-3.5 w-3.5" />
                     {getLabel(item)}
@@ -340,9 +331,8 @@ export function DynamicNavbar({
                     onLanguageChange?.("id");
                     setLangDropdownOpen(false);
                   }}
-                  className={`w-full px-3 py-1.5 text-left text-xs font-semibold hover:bg-slate-100 ${
-                    language === "id" ? "text-[#0B2F6E] bg-blue-50/50" : ""
-                  }`}
+                  className={`w-full px-3 py-1.5 text-left text-xs font-semibold hover:bg-slate-100 ${language === "id" ? "text-[#0B2F6E] bg-blue-50/50" : ""
+                    }`}
                 >
                   ID (Indonesia)
                 </button>
@@ -351,9 +341,8 @@ export function DynamicNavbar({
                     onLanguageChange?.("en");
                     setLangDropdownOpen(false);
                   }}
-                  className={`w-full px-3 py-1.5 text-left text-xs font-semibold hover:bg-slate-100 ${
-                    language === "en" ? "text-[#0B2F6E] bg-blue-50/50" : ""
-                  }`}
+                  className={`w-full px-3 py-1.5 text-left text-xs font-semibold hover:bg-slate-100 ${language === "en" ? "text-[#0B2F6E] bg-blue-50/50" : ""
+                    }`}
                 >
                   EN (English)
                 </button>
@@ -400,11 +389,10 @@ export function DynamicNavbar({
                   onClick={() => {
                     if (!item.children) setMobileMenuOpen(false);
                   }}
-                  className={`flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors ${
-                    isActive(item.href)
-                      ? "text-[#0B2F6E] bg-blue-50"
-                      : "text-slate-600 hover:bg-slate-50"
-                  }`}
+                  className={`flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors ${isActive(item.href)
+                    ? "text-[#0B2F6E] bg-blue-50"
+                    : "text-slate-600 hover:bg-slate-50"
+                    }`}
                 >
                   <NavIcon name={item.icon} className="h-4 w-4" />
                   {getLabel(item)}
