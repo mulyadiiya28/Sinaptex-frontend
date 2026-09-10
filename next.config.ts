@@ -55,8 +55,6 @@ const nextConfig: NextConfig = {
     ],
     formats: ["image/avif", "image/webp"],
   },
-  //output: "standalone",
-  output: process.env.VERCEL ? undefined : "standalone",
   turbopack: {},
 };
 
