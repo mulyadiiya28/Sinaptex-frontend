@@ -11,3 +11,4 @@ npm-cache/
 npm-cache/
 .env
 npm-cache/
+*.patch
