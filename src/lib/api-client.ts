@@ -1,21 +1,22 @@
 import { getAccessToken } from "@/lib/supabase-client";
 
+/**
+ * PR-1 fix: SEBELUMNYA fungsi ini diam-diam fallback ke
+ * `https://cahayaastera.com` (server PRODUKSI) kalau env kosong/salah —
+ * artinya developer yang lupa/salah set `.env.local` bisa tanpa sadar
+ * membaca ATAU MENULIS data ke production. Sekarang: fail-fast dengan
+ * pesan error yang jelas saat module di-load, bukan fallback diam-diam.
+ */
 export function resolveApiBaseUrl(): string {
   let url = (process.env.NEXT_PUBLIC_API_URL || "").trim();
   url = url.replace(/^[\\"'"]+|[\\"'"]+$/g, "").trim();
 
-  // If empty or points to Next.js port 3000 (which only serves the frontend in this container),
-  // fallback to the official live Sinaptex backend engine.
-  if (
-    !url ||
-    url === "localhost" ||
-    url === "localhost:3000" ||
-    url === "http://localhost:3000" ||
-    url === "https://localhost:3000" ||
-    url === "127.0.0.1:3000" ||
-    url === "http://127.0.0.1:3000"
-  ) {
-    return "https://cahayaastera.com";
+  if (!url) {
+    throw new Error(
+      "NEXT_PUBLIC_API_URL wajib di-set (lihat .env.example). " +
+        "Aplikasi sengaja TIDAK fallback ke server production untuk mencegah " +
+        "dev environment tanpa sadar membaca/menulis data ke production."
+    );
   }
 
   // Ensure protocol
@@ -31,7 +32,7 @@ export function resolveApiBaseUrl(): string {
 }
 
 /**
- * Base URL API engine. Default ke server live Sinaptex (https://cahayaastera.com).
+ * Base URL API engine — WAJIB di-set lewat NEXT_PUBLIC_API_URL, lihat .env.example.
  */
 export const BASE_URL = resolveApiBaseUrl();
 
