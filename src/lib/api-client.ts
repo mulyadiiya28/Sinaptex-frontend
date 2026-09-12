@@ -98,16 +98,25 @@ async function requestRaw<T>(path: string, options: FetchOptions = {}): Promise<
     fetchSignal = AbortSignal.timeout(10_000);
   }
 
+  // Deteksi FormData — biarkan browser set Content-Type sendiri (dengan
+  // boundary multipart) untuk upload file. Jangan paksa application/json.
+  const isFormData =
+    typeof FormData !== "undefined" && init.body instanceof FormData;
+
+  const requestHeaders: Record<string, string> = {
+    ...authHeaders,
+    ...(headers as Record<string, string> | undefined),
+  };
+  if (!isFormData) {
+    requestHeaders["Content-Type"] = "application/json";
+  }
+
   let res: Response;
   try {
     res = await fetch(buildUrl(path, params), {
       ...init,
       signal: fetchSignal,
-      headers: {
-        "Content-Type": "application/json",
-        ...authHeaders,
-        ...headers,
-      },
+      headers: requestHeaders,
     });
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : "Network error / Server unreachable";
