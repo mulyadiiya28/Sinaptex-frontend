@@ -1,31 +1,42 @@
 import { apiClient } from "@/lib/api-client";
-import { ChatMessage, Conversation } from "./chat.schema";
+import {
+  BlockedProfile,
+  ChatMessage,
+  Conversation,
+  ReportReason,
+  StartConversationInput,
+} from "./chat.schema";
 
 /**
- * CATATAN MOCK / FALLBACK:
- * - listConversations & listMessages: jika API kosong/gagal, fallback ke data demo
- *   agar UI chat tidak blank saat development.
- * - Di production sebaiknya hapus fallback demo dan tampilkan empty state saja.
- * - Endpoint /api/v1/chat/reactions belum ada di OpenAPI resmi.
- * - Kirim pesan real-time via Socket.IO event `message:send` (lihat chat-socket.ts).
+ * CATATAN:
+ * - Kirim pesan REALTIME via Socket.IO (lihat chat-socket.ts → useChatSocket).
+ * - REST di sini untuk: upload gambar/attachment, fallback, history, block.
+ * - toggleReaction: no-op (endpoint /chat/reactions belum ada di backend).
  */
 
 const defaultConversations: Conversation[] = [];
-
 const defaultMessages: Record<string, ChatMessage[]> = {};
 
 export const chatApi = {
+  // ============================================
+  // CONVERSATIONS
+  // ============================================
   listConversations: async (): Promise<Conversation[]> => {
     try {
       const res = await apiClient.get<Conversation[]>("/api/v1/chat/conversations");
       if (Array.isArray(res)) return res;
       return defaultConversations;
     } catch {
-      // API belum tersedia / error — empty list (bukan demo palsu)
       return defaultConversations;
     }
   },
 
+  startConversation: (input: StartConversationInput) =>
+    apiClient.post<Conversation>("/api/v1/chat/conversations", input),
+
+  // ============================================
+  // MESSAGES
+  // ============================================
   listMessages: async (conversationId: string): Promise<ChatMessage[]> => {
     try {
       const res = await apiClient.get<ChatMessage[]>(
@@ -38,14 +49,55 @@ export const chatApi = {
     }
   },
 
-  // NOTE: /api/v1/chat/reactions TIDAK ada di dokumentasi resmi OpenAPI
-  // (cahayaastera.com/api/docs) — dikonfirmasi lewat pengecekan endpoint list.
-  // Sebelumnya kode ini tetap memanggil endpoint tsb dan mengandalkan .catch()
-  // untuk diam-diam "berhasil", padahal itu selalu gagal di backend (request
-  // sia-sia setiap kali user reaksi). Reaksi realtime tetap jalan lewat
-  // Socket.IO (lihat handleToggleReaction di chat/page.tsx yang panggil
-  // sendReaction terlebih dahulu). Fungsi ini dibuat no-op sampai backend
-  // benar-benar menyediakan endpoint REST untuk reaction.
+  /**
+   * Kirim pesan via REST — untuk upload gambar/attachment atau fallback
+   * kalau Socket.IO tidak connect. Untuk teks realtime, pakai
+   * useChatSocket().sendMessage (Socket.IO).
+   */
+  sendMessage: (
+    conversationId: string,
+    data: { type: "TEXT" | "IMAGE" | "ATTACHMENT"; content?: string; file?: File }
+  ) => {
+    const formData = new FormData();
+    formData.append("type", data.type);
+    if (data.content) formData.append("content", data.content);
+    if (data.file) formData.append("file", data.file);
+
+    return apiClient.post<ChatMessage>(
+      `/api/v1/chat/conversations/${conversationId}/messages`,
+      formData
+    );
+  },
+
+  markAsRead: (conversationId: string) =>
+    apiClient.patch<null>(`/api/v1/chat/conversations/${conversationId}/read`),
+
+  // ============================================
+  // REPORT PEER (FR-16 anti-spam)
+  // ============================================
+  reportPeer: (conversationId: string, reason: ReportReason, description?: string) =>
+    apiClient.post(`/api/v1/chat/conversations/${conversationId}/report`, {
+      reason,
+      description,
+    }),
+
+  // ============================================
+  // FR-16: BLOCK / UNBLOCK PROFILE
+  // ============================================
+  blockProfile: (blockedProfileId: string, reason?: string) =>
+    apiClient.post<BlockedProfile>("/api/v1/chat/blocks", {
+      blockedProfileId,
+      reason,
+    }),
+
+  listBlocked: () => apiClient.get<BlockedProfile[]>("/api/v1/chat/blocks"),
+
+  unblockProfile: (blockedProfileId: string) =>
+    apiClient.delete<null>(`/api/v1/chat/blocks/${blockedProfileId}`),
+
+  // ============================================
+  // REACTIONS (no-op — endpoint belum ada di backend)
+  // ============================================
   toggleReaction: async (
     _conversationId: string,
     _messageId: string,

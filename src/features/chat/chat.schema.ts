@@ -1,7 +1,8 @@
 import { z } from "zod";
 
-// originType NEED tanpa gate membership; OFFER/PROFILE saat ini masih gate
-// membership di chat.policy.js versi production (lihat README engine bagian 4).
+// FR-16: Direct chat bebas dikirim siapa saja ke siapa saja, TIDAK ADA
+// gating membership. Satu-satunya syarat: penerima tidak sedang memblokir
+// pengirim (lihat chatApi.blockProfile / listBlocked / unblockProfile).
 export const chatOriginTypeSchema = z.enum(["NEED", "OFFER", "PROFILE"]);
 export type ChatOriginType = z.infer<typeof chatOriginTypeSchema>;
 
@@ -47,3 +48,57 @@ export const sendMessageSchema = z.object({
   content: z.string().min(1, "Pesan tidak boleh kosong").max(2000),
 });
 export type SendMessageInput = z.infer<typeof sendMessageSchema>;
+
+// ============================================
+// FR-16: Block / Unblock Profile
+// ============================================
+export const blockedProfileInfoSchema = z.object({
+  id: z.string(),
+  fullName: z.string(),
+  avatarUrl: z.string().nullable().optional(),
+});
+export type BlockedProfileInfo = z.infer<typeof blockedProfileInfoSchema>;
+
+export const blockedProfileSchema = z.object({
+  id: z.string(),
+  blockerProfileId: z.string(),
+  blockedProfileId: z.string(),
+  reason: z.string().nullable().optional(),
+  createdAt: z.string(),
+  blocked: blockedProfileInfoSchema.optional(),
+});
+export type BlockedProfile = z.infer<typeof blockedProfileSchema>;
+
+export const blockProfileInputSchema = z.object({
+  blockedProfileId: z.string().uuid(),
+  reason: z.string().max(500).optional(),
+});
+export type BlockProfileInput = z.infer<typeof blockProfileInputSchema>;
+
+// ============================================
+// Start Conversation Input
+// ============================================
+export const startConversationInputSchema = z.object({
+  recipientProfileId: z.string().uuid(),
+  originType: chatOriginTypeSchema.default("PROFILE"),
+  opportunityId: z.string().uuid().optional(),
+});
+export type StartConversationInput = z.infer<typeof startConversationInputSchema>;
+
+// ============================================
+// Report Peer Input
+// ============================================
+export const reportReasonSchema = z.enum([
+  "SPAM",
+  "PENIPUAN",
+  "KONTEN_TIDAK_PANTAS",
+  "PELECEHAN",
+  "LAINNYA",
+]);
+export type ReportReason = z.infer<typeof reportReasonSchema>;
+
+export const reportPeerInputSchema = z.object({
+  reason: reportReasonSchema,
+  description: z.string().max(1000).optional(),
+});
+export type ReportPeerInput = z.infer<typeof reportPeerInputSchema>;
