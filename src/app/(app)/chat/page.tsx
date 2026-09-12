@@ -2,12 +2,14 @@
 
 import { useState, useMemo, useRef, useEffect, useCallback, use } from "react";
 import Link from "next/link";
+import { BlockedListModal } from "@/components/chat/blocked-list-modal";
 import {
   MessageSquare,
   Send,
   User,
   Briefcase,
   Search,
+  ShieldOff,
   Sparkles,
 } from "lucide-react";
 import { useConversations, useMessages } from "@/features/chat/chat.hooks";
@@ -44,6 +46,7 @@ export default function ChatPage({
   const [pendingAttachment, setPendingAttachment] = useState<SelectedAttachment | null>(null);
   const [lightboxImage, setLightboxImage] = useState<{ url: string; caption?: string } | null>(null);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const [isBlockedListOpen, setIsBlockedListOpen] = useState(false);
 
   // Compute active conversation ID
   const activeConvId = useMemo(() => {
@@ -281,13 +284,13 @@ export default function ChatPage({
       imageUrl: attachmentUrl,
       attachments: currentAttachment
         ? [
-            {
-              type: "image",
-              url: currentAttachment.previewUrl,
-              name: currentAttachment.name,
-              size: currentAttachment.size,
-            },
-          ]
+          {
+            type: "image",
+            url: currentAttachment.previewUrl,
+            name: currentAttachment.name,
+            size: currentAttachment.size,
+          },
+        ]
         : undefined,
       createdAt: new Date().toISOString(),
     };
@@ -364,11 +367,10 @@ export default function ChatPage({
                   key={conv.id}
                   type="button"
                   onClick={() => setSelectedConvId(conv.id)}
-                  className={`flex w-full items-start gap-3 border-b border-zinc-50 p-3.5 text-left transition dark:border-zinc-800/60 ${
-                    active
-                      ? "bg-zinc-100 dark:bg-zinc-800"
-                      : "hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
-                  }`}
+                  className={`flex w-full items-start gap-3 border-b border-zinc-50 p-3.5 text-left transition dark:border-zinc-800/60 ${active
+                    ? "bg-zinc-100 dark:bg-zinc-800"
+                    : "hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
+                    }`}
                 >
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-300">
                     <User className="h-5 w-5" />
@@ -436,15 +438,28 @@ export default function ChatPage({
                   </div>
                 </div>
 
-                {activeConv?.opportunityId && (
-                  <Link
-                    href={`/opportunities/${activeConv.opportunityId}`}
+                <div className="flex items-center gap-2">
+                  {/* Tombol Kelola Blokir */}
+                  <button
+                    type="button"
+                    onClick={() => setIsBlockedListOpen(true)}
                     className="inline-flex items-center gap-1 rounded-lg border border-zinc-300 px-2.5 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                    title="Kelola pengguna diblokir"
                   >
-                    <Briefcase className="h-3 w-3" />
-                    Lihat Opportunity
-                  </Link>
-                )}
+                    <ShieldOff className="h-3 w-3" />
+                    Blokir
+                  </button>
+
+                  {activeConv?.opportunityId && (
+                    <Link
+                      href={`/opportunities/${activeConv.opportunityId}`}
+                      className="inline-flex items-center gap-1 rounded-lg border border-zinc-300 px-2.5 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                    >
+                      <Briefcase className="h-3 w-3" />
+                      Lihat Opportunity
+                    </Link>
+                  )}
+                </div>
               </div>
 
               {/* Chat Messages */}
@@ -479,9 +494,8 @@ export default function ChatPage({
                     >
                       {/* Message Bubble + Reaction trigger on hover */}
                       <div
-                        className={`flex items-center gap-1.5 ${
-                          isMe ? "flex-row" : "flex-row-reverse"
-                        }`}
+                        className={`flex items-center gap-1.5 ${isMe ? "flex-row" : "flex-row-reverse"
+                          }`}
                       >
                         <MessageReactionTrigger
                           isMe={isMe}
@@ -490,11 +504,10 @@ export default function ChatPage({
                           }
                         />
                         <div
-                          className={`max-w-md overflow-hidden rounded-2xl text-sm ${
-                            isMe
-                              ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                              : "border border-zinc-200 bg-white text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
-                          } ${hasImage ? "p-1.5" : "px-4 py-2.5"}`}
+                          className={`max-w-md overflow-hidden rounded-2xl text-sm ${isMe
+                            ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                            : "border border-zinc-200 bg-white text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
+                            } ${hasImage ? "p-1.5" : "px-4 py-2.5"}`}
                         >
                           {/* Image Thumbnail */}
                           {hasImage && (
@@ -516,9 +529,8 @@ export default function ChatPage({
                           {/* Text Content */}
                           {(!hasImage || (msg.content && msg.content !== "📷 Foto")) && (
                             <p
-                              className={`whitespace-pre-wrap ${
-                                hasImage ? "px-2 py-1.5 text-xs" : ""
-                              }`}
+                              className={`whitespace-pre-wrap ${hasImage ? "px-2 py-1.5 text-xs" : ""
+                                }`}
                             >
                               {msg.content}
                             </p>
@@ -621,6 +633,12 @@ export default function ChatPage({
           )}
         </div>
       </div>
+
+      {/* Blocked List Modal (FR-16) */}
+      <BlockedListModal
+        isOpen={isBlockedListOpen}
+        onClose={() => setIsBlockedListOpen(false)}
+      />
 
       {/* Lightbox dialog for viewing images in full size */}
       <ImageLightbox
