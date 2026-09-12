@@ -1,14 +1,35 @@
-node_modules
-.next
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+build/
+
+# Environment
+.env
 .env.local
 .env*.local
+
+# Logs
 npm-debug.log*
+*.log
+
+# OS
 .DS_Store
+
+# TypeScript
 *.tsbuildinfo
-.env
+next-env.d.ts
+
+# Cache
 npm-cache/
-.env
-npm-cache/
-.env
-npm-cache/
+
+# Patch & backup files
 *.patch
+*.bak
+*.zip
+
+# Temporary
+temp/
+tmp/

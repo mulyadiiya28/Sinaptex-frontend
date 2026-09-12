@@ -1,57 +1,49 @@
 import { createClient } from "@supabase/supabase-js";
 
-function parseSupabaseConfig(): { url: string; anonKey: string } {
-  let rawUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim();
-  let rawKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "").trim();
+/**
+ * PR-6 fix: SEBELUMNYA fungsi ini:
+ *  1. Fallback diam-diam ke `https://placeholder.supabase.co` +
+ *     `placeholder-anon-key` kalau env kosong/invalid — app tetap boot,
+ *     tapi SEMUA request auth pasti gagal, dan errornya baru kelihatan jauh
+ *     di downstream (di tengah flow login/register), bukan saat startup.
+ *  2. Ada regex untuk "menyelamatkan" kasus salah paste (mis. seluruh baris
+ *     .env ikut ke-paste ke satu variabel) — ini memperbaiki GEJALA, bukan
+ *     akar masalah (harusnya developer benerin .env-nya, bukan aplikasi
+ *     menebak-nebak apa yang dimaksud).
+ *
+ * Sekarang: validasi sederhana (trim + strip quotes saja, TANPA regex
+ * ekstraksi), throw kalau invalid — fail-fast, pesan error mengarahkan ke
+ * .env.example.
+ */
+function resolveSupabaseConfig(): { url: string; anonKey: string } {
+  const rawUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || "")
+    .trim()
+    .replace(/^['"]+|['"]+$/g, "");
+  const rawKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "")
+    .trim()
+    .replace(/^['"]+|['"]+$/g, "");
 
-  if (rawUrl) {
-    // Handle cases where quotes or multiple variables were pasted into NEXT_PUBLIC_SUPABASE_URL
-    const urlMatch = rawUrl.match(/(https?:\/\/[^\s"'\\]+)/);
-    if (urlMatch) {
-      if (!rawKey || rawKey === "placeholder-anon-key") {
-        const keyMatch = rawUrl.match(/(?:ANON_KEY|anon_key|KEY|key)\s*=\s*["'\\]?([A-Za-z0-9-_.]+)/i);
-        if (keyMatch) {
-          rawKey = keyMatch[1];
-        }
-      }
-      rawUrl = urlMatch[1];
-    }
-  }
-
-  // Strip wrapping quotes and backslashes
-  rawUrl = rawUrl.replace(/^[\\"'"]+|[\\"'"]+$/g, "").trim();
-  if (rawKey) {
-    rawKey = rawKey.replace(/^[\\"'"]+|[\\"'"]+$/g, "").trim();
-  }
-
-  let finalUrl = "https://placeholder.supabase.co";
-  try {
-    if (rawUrl) {
-      const parsed = new URL(rawUrl);
-      if (parsed.protocol === "http:" || parsed.protocol === "https:") {
-        finalUrl = parsed.origin;
-      }
-    }
-  } catch {
-    if (typeof window !== "undefined") {
-      console.warn("Invalid NEXT_PUBLIC_SUPABASE_URL provided, falling back to placeholder:", rawUrl);
-    }
-    finalUrl = "https://placeholder.supabase.co";
-  }
-
-  const finalKey = rawKey || "placeholder-anon-key";
-  return { url: finalUrl, anonKey: finalKey };
-}
-
-const { url: supabaseUrl, anonKey: supabaseAnonKey } = parseSupabaseConfig();
-
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-  if (typeof window !== "undefined") {
-    console.warn(
-      "NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY belum di-set di environment variables"
+  if (!rawUrl || !rawKey) {
+    throw new Error(
+      "NEXT_PUBLIC_SUPABASE_URL dan NEXT_PUBLIC_SUPABASE_ANON_KEY wajib di-set " +
+        "(lihat .env.example, ambil dari Supabase Dashboard > Project Settings > API)."
     );
   }
+
+  let origin: string;
+  try {
+    origin = new URL(rawUrl).origin;
+  } catch {
+    throw new Error(
+      `NEXT_PUBLIC_SUPABASE_URL tidak valid: "${rawUrl}". ` +
+        'Harus URL lengkap, contoh: "https://xxxxx.supabase.co" (tanpa tanda kutip di .env).'
+    );
+  }
+
+  return { url: origin, anonKey: rawKey };
 }
+
+const { url: supabaseUrl, anonKey: supabaseAnonKey } = resolveSupabaseConfig();
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 

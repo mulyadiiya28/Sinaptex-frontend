@@ -47,6 +47,11 @@ export default function MembershipPage() {
     try {
       const result = await checkout.mutateAsync(planId);
       if (result?.checkoutUrl) {
+        // window.location.href di sini AMAN: dipanggil di event handler
+        // (handleCheckout, dari klik tombol), bukan saat render. Ini navigasi
+        // keluar ke payment gateway eksternal (Midtrans) — tidak bisa pakai
+        // next/navigation router karena bukan route internal Next.js.
+        // eslint-disable-next-line react-hooks/immutability
         window.location.href = result.checkoutUrl;
         return;
       }

@@ -1,0 +1,58 @@
+name: CI
+
+# PR-3: CI minimal supaya bug type/regresi tidak lolos ke main tanpa terdeteksi.
+# Jalan di tiap PR dan tiap push ke main. Pair branch protection ini dengan
+# "Require status checks to pass before merging" di GitHub repo settings,
+# pilih job "build" sebagai required check.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    name: Typecheck, Lint & Build
+    runs-on: ubuntu-latest
+
+    # Env dummy HANYA untuk keperluan build CI — nilai ini TIDAK pernah
+    # dipakai untuk request sungguhan (tidak ada job yang start server/e2e
+    # di sini). Wajib diisi sesuatu karena PR-1/PR-6 membuat api-client.ts
+    # dan supabase-client.ts fail-fast (throw) kalau env-nya kosong.
+    env:
+      NEXT_PUBLIC_API_URL: https://ci-dummy.invalid
+      NEXT_PUBLIC_SUPABASE_URL: https://ci-dummy.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-dummy-anon-key
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY: ci-dummy-vapid-key
+      NEXT_PUBLIC_DISABLE_SW: "true"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit -p .
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify service worker was generated
+        run: |
+          if [ ! -f "public/sw.js" ]; then
+            echo "::error::public/sw.js tidak ditemukan setelah build — cek konfigurasi @serwist/next di next.config.ts"
+            exit 1
+          fi
+          echo "OK: public/sw.js ditemukan"

@@ -234,20 +234,22 @@ function OpportunityCard({ opportunity }: { opportunity: Opportunity }) {
   const urgent =
     opportunity.urgent || opportunity.priority === "URGENT" || opportunity.priority === "HIGH";
 
-  const renderCategory = (category: any): string => {
+  const renderCategory = (category: unknown): string => {
     if (!category) return "Business";
     if (typeof category === "string") return category;
-    if (typeof category === "object") {
-      return category.name || category.title || category.id || "Business";
+    if (typeof category === "object" && category !== null) {
+      const c = category as { name?: string; title?: string; id?: string };
+      return c.name || c.title || c.id || "Business";
     }
     return "Business";
   };
 
-  const renderPublisher = (publisher: any): string => {
+  const renderPublisher = (publisher: unknown): string => {
     if (!publisher) return "Mitra Sinaptex";
     if (typeof publisher === "string") return publisher;
-    if (typeof publisher === "object") {
-      return publisher.name || publisher.companyName || "Mitra Sinaptex";
+    if (typeof publisher === "object" && publisher !== null) {
+      const p = publisher as { name?: string; companyName?: string };
+      return p.name || p.companyName || "Mitra Sinaptex";
     }
     return "Mitra Sinaptex";
   };

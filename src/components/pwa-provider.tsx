@@ -63,9 +63,17 @@ export function PwaProvider({ children }: { children: React.ReactNode }) {
   const [iosHint, setIosHint] = useState(false);
 
   useEffect(() => {
+    // isStandaloneMode()/getNotificationPermission()/navigator.onLine cuma
+    // bisa dibaca di client (butuh `window`/`navigator`), dan SSR selalu
+    // render nilai default dulu. Sinkronisasi lewat effect setelah mount ini
+    // justru pola yang direkomendasikan React sendiri untuk menghindari
+    // hydration mismatch — bukan anti-pattern "state derivation" yang
+    // ditarget rule react-hooks/set-state-in-effect ini.
+    /* eslint-disable react-hooks/set-state-in-effect -- lihat penjelasan di atas */
     setIsInstalled(isStandaloneMode());
     setPermission(getNotificationPermission());
     setIsOnline(navigator.onLine);
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     registerSerwistServiceWorker();
 
