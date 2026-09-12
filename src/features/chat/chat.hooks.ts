@@ -2,13 +2,16 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { chatApi } from "./chat.api";
-import { SendMessageInput } from "./chat.schema";
 
 export const chatKeys = {
   conversations: ["chat", "conversations"] as const,
   messages: (conversationId: string) => ["chat", "messages", conversationId] as const,
+  blocks: ["chat", "blocks"] as const,
 };
 
+// ============================================
+// CONVERSATIONS
+// ============================================
 export function useConversations(enabled: boolean = true) {
   return useQuery({
     queryKey: chatKeys.conversations,
@@ -18,6 +21,9 @@ export function useConversations(enabled: boolean = true) {
   });
 }
 
+// ============================================
+// MESSAGES
+// ============================================
 export function useMessages(conversationId: string | null) {
   return useQuery({
     queryKey: chatKeys.messages(conversationId ?? ""),
@@ -26,19 +32,34 @@ export function useMessages(conversationId: string | null) {
   });
 }
 
-export function useSendMessage() {
+// ============================================
+// FR-16: BLOCK / UNBLOCK PROFILE
+// ============================================
+export function useListBlocked(enabled: boolean = true) {
+  return useQuery({
+    queryKey: chatKeys.blocks,
+    queryFn: chatApi.listBlocked,
+    enabled,
+  });
+}
+
+export function useBlockProfile() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ conversationId, content }: SendMessageInput) => {
-      // Endpoint REST fallback bila ada atau direct return
-      return { id: `msg_${Date.now()}`, conversationId, content, senderId: "me", createdAt: new Date().toISOString() };
+    mutationFn: ({ blockedProfileId, reason }: { blockedProfileId: string; reason?: string }) =>
+      chatApi.blockProfile(blockedProfileId, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: chatKeys.blocks });
     },
-    onSuccess: (data) => {
-      queryClient.setQueryData(
-        chatKeys.messages(data.conversationId),
-        (old: unknown) => (Array.isArray(old) ? [...old, data] : [data])
-      );
-      queryClient.invalidateQueries({ queryKey: chatKeys.conversations });
+  });
+}
+
+export function useUnblockProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (blockedProfileId: string) => chatApi.unblockProfile(blockedProfileId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: chatKeys.blocks });
     },
   });
 }
