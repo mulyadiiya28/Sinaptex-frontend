@@ -46,7 +46,7 @@ export default function NotificationsPage() {
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+          <h1 className="text-2xl font-black tracking-tight text-[#0B2F6E] dark:text-blue-400">
             Notifikasi & PWA
           </h1>
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
@@ -71,7 +71,7 @@ export default function NotificationsPage() {
                   type="button"
                   onClick={markAllRead}
                   disabled={markRead.isPending}
-                  className="rounded-lg bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                  className="rounded-lg bg-[#0B2F6E] px-3 py-1.5 text-sm font-medium text-white transition hover:bg-[#082352] disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
                 >
                   Tandai semua dibaca
                 </button>
@@ -88,7 +88,7 @@ export default function NotificationsPage() {
           onClick={() => setActiveTab("list")}
           className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-sm font-medium transition ${
             activeTab === "list"
-              ? "bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900"
+              ? "bg-[#0B2F6E] text-white dark:bg-zinc-50 dark:text-zinc-900"
               : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
           }`}
         >
@@ -101,7 +101,7 @@ export default function NotificationsPage() {
           onClick={() => setActiveTab("settings")}
           className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-sm font-medium transition ${
             activeTab === "settings"
-              ? "bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900"
+              ? "bg-[#0B2F6E] text-white dark:bg-zinc-50 dark:text-zinc-900"
               : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
           }`}
         >

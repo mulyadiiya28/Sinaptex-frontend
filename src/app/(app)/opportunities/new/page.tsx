@@ -112,7 +112,7 @@ export default function NewOpportunityPage() {
         >
           ← Kembali
         </Link>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+        <h1 className="mt-2 text-2xl font-black tracking-tight text-[#0B2F6E] dark:text-blue-400">
           Buat Opportunity
         </h1>
         <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
@@ -134,7 +134,7 @@ export default function NewOpportunityPage() {
                 onClick={() => setType(t)}
                 className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition ${
                   type === t
-                    ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-50 dark:bg-zinc-50 dark:text-zinc-900"
+                    ? "border-[#0B2F6E] bg-[#0B2F6E] text-white dark:border-zinc-50 dark:bg-zinc-50 dark:text-zinc-900"
                     : "border-zinc-300 text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800"
                 }`}
               >
@@ -272,7 +272,7 @@ export default function NewOpportunityPage() {
           <button
             type="submit"
             disabled={create.isPending}
-            className="flex-1 rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:opacity-60 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+            className="flex-1 rounded-lg bg-[#0B2F6E] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#082352] disabled:opacity-60 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
           >
             {create.isPending ? "Menyimpan…" : "Publikasikan"}
           </button>

@@ -73,7 +73,7 @@ export default function MembershipPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-[#0B2F6E]">
+        <h1 className="text-2xl font-black tracking-tight text-[#0B2F6E]">
           Membership & Boost
         </h1>
         <p className="mt-1 text-sm text-slate-500">

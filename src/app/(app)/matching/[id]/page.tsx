@@ -117,7 +117,7 @@ export default function MatchingPage({
             <span
               className={`rounded px-2 py-0.5 text-xs font-medium ${
                 opp.type === "NEED"
-                  ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400"
+                  ? "bg-blue-100 text-[#082352] dark:bg-blue-900/40 dark:text-blue-400"
                   : "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-400"
               }`}
             >
@@ -127,7 +127,7 @@ export default function MatchingPage({
               {opp.status}
             </span>
           </div>
-          <h1 className="mt-2 text-xl font-semibold text-zinc-900 dark:text-zinc-50">
+          <h1 className="mt-2 text-xl font-black text-[#0B2F6E] dark:text-blue-400">
             {opp.title}
           </h1>
           <p className="mt-1 line-clamp-2 text-sm text-zinc-500 dark:text-zinc-400">
@@ -189,7 +189,7 @@ export default function MatchingPage({
           </p>
           <Link
             href="/marketplace"
-            className="mt-4 inline-block rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+            className="mt-4 inline-block rounded-lg bg-[#0B2F6E] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#082352] dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
           >
             Jelajahi Marketplace Manual
           </Link>
@@ -232,7 +232,7 @@ export default function MatchingPage({
                   <div className="flex flex-wrap items-center gap-4 text-xs">
                     <div className="flex items-center gap-1.5">
                       <span className="font-medium text-zinc-500">Kecocokan:</span>
-                      <span className="font-semibold text-blue-600 dark:text-blue-400">
+                      <span className="font-semibold text-[#0B2F6E] dark:text-blue-400">
                         {Math.round(item.matchScore)}%
                       </span>
                     </div>
@@ -248,7 +248,7 @@ export default function MatchingPage({
                   {/* Progress bar */}
                   <div className="h-2 w-full max-w-xs overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
                     <div
-                      className="h-full bg-blue-600 transition-all duration-500"
+                      className="h-full bg-[#0B2F6E] transition-all duration-500"
                       style={{ width: `${Math.min(100, Math.max(10, item.matchScore))}%` }}
                     />
                   </div>
@@ -273,7 +273,7 @@ export default function MatchingPage({
                     <button
                       type="button"
                       onClick={() => setSelectedMatch(item)}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-900 px-3.5 py-2 text-xs font-medium text-white transition hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-[#0B2F6E] px-3.5 py-2 text-xs font-medium text-white transition hover:bg-[#082352] dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
                     >
                       <Send className="h-3.5 w-3.5" />
                       Kirim Undangan
@@ -289,7 +289,7 @@ export default function MatchingPage({
       {/* Invitation Modal */}
       {selectedMatch && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-xl dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="w-full max-w-md rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur-xl p-6 shadow-xl dark:border-zinc-800 dark:bg-zinc-900">
             <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
               Kirim Undangan Matching
             </h3>
@@ -330,7 +330,7 @@ export default function MatchingPage({
                 <button
                   type="submit"
                   disabled={createInvitation.isPending}
-                  className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                  className="rounded-lg bg-[#0B2F6E] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#082352] disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
                 >
                   {createInvitation.isPending ? "Mengirim…" : "Kirim Undangan"}
                 </button>

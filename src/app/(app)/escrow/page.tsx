@@ -31,7 +31,7 @@ function formatIdr(n: number) {
 
 const STATUS_STYLES: Record<EscrowStatus, string> = {
   PENDING_HOLD: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400",
-  HELD: "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400",
+  HELD: "bg-blue-50 text-[#082352] dark:bg-blue-950/40 dark:text-blue-400",
   SELLER_CONFIRMED: "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400",
   BUYER_CONFIRMED: "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400",
   RELEASED: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400",
@@ -58,7 +58,7 @@ export default function EscrowPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-6">
-        <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-50">Escrow</h1>
+        <h1 className="text-xl font-black text-[#0B2F6E] dark:text-blue-400">Escrow</h1>
         <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
           Dana transaksi antara Buyer dan Seller ditahan di sini sampai barang/jasa
           dikonfirmasi diterima, lalu dicairkan ke Seller. Cuma menampilkan transaksi
@@ -67,7 +67,7 @@ export default function EscrowPage() {
       </div>
 
       {isLoading && (
-        <div className="flex items-center justify-center rounded-2xl border border-zinc-200 bg-white p-10 dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="flex items-center justify-center rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur-xl p-10 dark:border-zinc-800 dark:bg-zinc-900">
           <Loader2 className="h-5 w-5 animate-spin text-zinc-400" />
         </div>
       )}
@@ -139,11 +139,11 @@ function EscrowCard({ escrow, myProfileId }: { escrow: Escrow; myProfileId?: str
     dispute.isPending;
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur-xl p-5 dark:border-zinc-800 dark:bg-zinc-900">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-950/40">
-            <ShieldCheck className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <ShieldCheck className="h-5 w-5 text-[#0B2F6E] dark:text-blue-400" />
           </div>
           <div>
             <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
@@ -186,7 +186,7 @@ function EscrowCard({ escrow, myProfileId }: { escrow: Escrow; myProfileId?: str
           <button
             disabled={busy}
             onClick={() => runAction(() => sellerConfirm.mutateAsync({ id: escrow.id }))}
-            className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+            className="flex items-center gap-1.5 rounded-lg bg-[#0B2F6E] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#082352] disabled:opacity-60"
           >
             <PackageCheck className="h-3.5 w-3.5" />
             Konfirmasi Sudah Dikirim
@@ -199,7 +199,7 @@ function EscrowCard({ escrow, myProfileId }: { escrow: Escrow; myProfileId?: str
             onClick={() =>
               runAction(() => buyerConfirm.mutateAsync({ id: escrow.id, autoRelease: false }))
             }
-            className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+            className="flex items-center gap-1.5 rounded-lg bg-[#0B2F6E] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#082352] disabled:opacity-60"
           >
             <PackageCheck className="h-3.5 w-3.5" />
             Konfirmasi Sudah Diterima

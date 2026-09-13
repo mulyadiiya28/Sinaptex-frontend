@@ -30,7 +30,7 @@ const navItems = [
     label: "Marketplace",
     desc: "Jelajahi Need & Offer publik",
     icon: Store,
-    color: "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400",
+    color: "bg-blue-50 text-[#0B2F6E] dark:bg-blue-950/30 dark:text-blue-400",
     borderColor: "group-hover:border-blue-200 dark:group-hover:border-blue-800",
   },
   {
@@ -54,7 +54,7 @@ const navItems = [
     label: "Deal",
     desc: "Negosiasi hingga selesai",
     icon: Handshake,
-    color: "bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400",
+    color: "bg-amber-50 text-[#FF6B00] dark:bg-amber-950/30 dark:text-amber-400",
     borderColor: "group-hover:border-amber-200 dark:group-hover:border-amber-800",
   },
   {
@@ -113,7 +113,7 @@ export default function DashboardPage() {
           <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
             Selamat datang kembali
           </p>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+          <h1 className="text-2xl font-black tracking-tight text-[#0B2F6E] dark:text-blue-400">
             {me?.fullName ?? "Pengguna Sinaptex"}
           </h1>
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
@@ -122,7 +122,7 @@ export default function DashboardPage() {
         </div>
         <Link
           href="/opportunities/new"
-          className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-zinc-800 active:scale-[0.98] dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+          className="inline-flex items-center gap-1.5 rounded-xl bg-[#0B2F6E] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[#082352] active:scale-[0.98] dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
         >
           <Zap className="h-4 w-4" />
           Buat Opportunity
@@ -157,7 +157,7 @@ export default function DashboardPage() {
             label="Opportunity Aktif"
             value={activeCount}
             icon={Briefcase}
-            color="text-blue-600 dark:text-blue-400"
+            color="text-[#0B2F6E] dark:text-blue-400"
             bg="bg-blue-50 dark:bg-blue-950/30"
           />
           <StatCard
@@ -178,7 +178,7 @@ export default function DashboardPage() {
             label="Deal Berjalan"
             value={dealInProgress + dealNegotiation}
             icon={Handshake}
-            color="text-amber-600 dark:text-amber-400"
+            color="text-[#FF6B00] dark:text-amber-400"
             bg="bg-amber-50 dark:bg-amber-950/30"
           />
         </div>
@@ -186,17 +186,17 @@ export default function DashboardPage() {
 
       {/* Deal Progress Mini Overview */}
       {!isLoading && deals.length > 0 && (
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur-xl p-5 dark:border-zinc-800 dark:bg-zinc-900">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Progres Deal</h3>
-            <Link href="/deals" className="text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400">
+            <Link href="/deals" className="text-xs font-medium text-[#0B2F6E] hover:text-[#082352] dark:text-blue-400">
               Lihat semua →
             </Link>
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
             <div className="flex items-center gap-3 rounded-xl bg-amber-50 p-3 dark:bg-amber-950/20">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/40">
-                <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                <Clock className="h-5 w-5 text-[#FF6B00] dark:text-amber-400" />
               </div>
               <div>
                 <p className="text-lg font-bold text-zinc-900 dark:text-zinc-50">{dealNegotiation}</p>
@@ -226,10 +226,10 @@ export default function DashboardPage() {
       )}
 
       {/* Pending Invitations — Modern Card */}
-      <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur-xl shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
         <div className="flex items-center justify-between border-b border-zinc-100 p-5 dark:border-zinc-800">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-[#082352] dark:bg-blue-950 dark:text-blue-300">
               <Mail className="h-5 w-5" />
             </div>
             <div>
@@ -238,7 +238,7 @@ export default function DashboardPage() {
                   Undangan Matching
                 </h2>
                 {pendingInvitations.length > 0 && (
-                  <span className="flex h-5 items-center justify-center rounded-full bg-blue-600 px-2 text-[10px] font-bold text-white">
+                  <span className="flex h-5 items-center justify-center rounded-full bg-[#0B2F6E] px-2 text-[10px] font-bold text-white">
                     {pendingInvitations.length}
                   </span>
                 )}
@@ -251,7 +251,7 @@ export default function DashboardPage() {
 
           <Link
             href="/deals"
-            className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-blue-600 transition hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/30"
+            className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-[#0B2F6E] transition hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/30"
           >
             Lihat semua deal
             <ChevronRight className="h-3.5 w-3.5" />
@@ -274,7 +274,7 @@ export default function DashboardPage() {
               </p>
               <Link
                 href="/opportunities"
-                className="mt-4 inline-flex items-center gap-1 rounded-lg bg-zinc-900 px-4 py-2 text-xs font-medium text-white transition hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                className="mt-4 inline-flex items-center gap-1 rounded-lg bg-[#0B2F6E] px-4 py-2 text-xs font-medium text-white transition hover:bg-[#082352] dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
               >
                 <Zap className="h-3.5 w-3.5" />
                 Jalankan Matching
@@ -295,7 +295,7 @@ export default function DashboardPage() {
                       <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                         Undangan #{inv.id.slice(0, 8)}
                       </span>
-                      <span className="flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-600 dark:bg-amber-950/30 dark:text-amber-400">
+                      <span className="flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-[#FF6B00] dark:bg-amber-950/30 dark:text-amber-400">
                         <Clock className="h-3 w-3" />
                         Menunggu
                       </span>
@@ -384,7 +384,7 @@ function StatCard({
   bg: string;
 }) {
   return (
-    <div className="flex items-center gap-4 rounded-2xl border border-zinc-200 bg-white p-5 transition hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="flex items-center gap-4 rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur-xl p-5 transition hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900">
       <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${bg}`}>
         <Icon className={`h-6 w-6 ${color}`} />
       </div>

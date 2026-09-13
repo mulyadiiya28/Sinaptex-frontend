@@ -20,7 +20,7 @@ const statusColor: Record<OpportunityStatus, string> = {
   ACTIVE: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400",
   CLOSED: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400",
   EXPIRED: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400",
-  MATCHED: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",
+  MATCHED: "bg-blue-100 text-[#082352] dark:bg-blue-900/40 dark:text-blue-400",
   CANCELLED: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400",
 };
 
@@ -106,13 +106,13 @@ export default function OpportunityDetailPage({
         </div>
       )}
 
-      <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur-xl p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <span
               className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${
                 opp.type === "NEED"
-                  ? "bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-400"
+                  ? "bg-blue-50 text-[#082352] dark:bg-blue-950/50 dark:text-blue-400"
                   : "bg-violet-50 text-violet-700 dark:bg-violet-950/50 dark:text-violet-400"
               }`}
             >
@@ -144,7 +144,7 @@ export default function OpportunityDetailPage({
           )}
         </div>
 
-        <h1 className="mt-3 text-xl font-bold text-zinc-900 dark:text-zinc-50">
+        <h1 className="mt-3 text-xl font-black text-[#0B2F6E] dark:text-blue-400">
           {opp.title}
         </h1>
 
@@ -203,7 +203,7 @@ export default function OpportunityDetailPage({
         <div className="mt-6 flex flex-wrap gap-2 border-t border-zinc-100 pt-6 dark:border-zinc-800">
           <Link
             href={`/matching/${opp.id}`}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-zinc-800 active:scale-[0.98] dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-[#0B2F6E] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[#082352] active:scale-[0.98] dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
           >
             <Sparkles className="h-4 w-4 text-amber-400" />
             Jalankan Matching Engine
@@ -220,7 +220,7 @@ export default function OpportunityDetailPage({
       {/* Boost Modal */}
       {showBoostModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-lg rounded-2xl border border-zinc-200 bg-white p-6 shadow-xl dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="w-full max-w-lg rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur-xl p-6 shadow-xl dark:border-zinc-800 dark:bg-zinc-900">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
                 <Rocket className="h-5 w-5" />

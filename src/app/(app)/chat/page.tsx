@@ -310,7 +310,7 @@ export default function ChatPage({
   return (
     <div className="mx-auto max-w-6xl space-y-4">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+        <h1 className="text-2xl font-black tracking-tight text-[#0B2F6E] dark:text-blue-400">
           Chat Real-Time
         </h1>
         <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
@@ -318,7 +318,7 @@ export default function ChatPage({
         </p>
       </div>
 
-      <div className="flex h-[calc(100vh-14rem)] min-h-[500px] overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="flex h-[calc(100vh-14rem)] min-h-[500px] overflow-hidden rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur-xl shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
         {/* Left column: Conversation list */}
         <div className="flex w-80 shrink-0 flex-col border-r border-zinc-200 dark:border-zinc-800">
           <div className="border-b border-zinc-100 p-3 dark:border-zinc-800">
@@ -349,7 +349,7 @@ export default function ChatPage({
                     <button
                       type="button"
                       onClick={() => setSelectedConvId(`conv_${targetOppId}`)}
-                      className="rounded-lg bg-zinc-900 px-3 py-1.5 text-xs text-white dark:bg-zinc-50 dark:text-zinc-900"
+                      className="rounded-lg bg-[#0B2F6E] px-3 py-1.5 text-xs text-white dark:bg-zinc-50 dark:text-zinc-900"
                     >
                       Buka Chat Room
                     </button>
@@ -372,7 +372,7 @@ export default function ChatPage({
                     : "hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
                     }`}
                 >
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 font-semibold text-[#082352] dark:bg-blue-950 dark:text-blue-300">
                     <User className="h-5 w-5" />
                   </div>
                   <div className="min-w-0 flex-1">
@@ -408,9 +408,9 @@ export default function ChatPage({
         >
           {/* Drag-over overlay */}
           {isDraggingOver && (
-            <div className="absolute inset-0 z-40 m-2 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-blue-500 bg-blue-600/10 backdrop-blur-xs">
+            <div className="absolute inset-0 z-40 m-2 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-blue-500 bg-[#0B2F6E]/10 backdrop-blur-xs">
               <div className="rounded-2xl bg-white p-4 text-center shadow-xl dark:bg-zinc-900">
-                <p className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                <p className="text-sm font-semibold text-[#0B2F6E] dark:text-blue-400">
                   Lepaskan foto di sini untuk melampirkan
                 </p>
                 <p className="mt-1 text-xs text-zinc-400">
@@ -505,7 +505,7 @@ export default function ChatPage({
                         />
                         <div
                           className={`max-w-md overflow-hidden rounded-2xl text-sm ${isMe
-                            ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                            ? "bg-[#0B2F6E] text-white dark:bg-zinc-100 dark:text-zinc-900"
                             : "border border-zinc-200 bg-white text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
                             } ${hasImage ? "p-1.5" : "px-4 py-2.5"}`}
                         >
@@ -562,7 +562,7 @@ export default function ChatPage({
                 {/* Typing indicator bubble */}
                 {isTyping && (
                   <div className="flex flex-col items-start animate-fadeIn">
-                    <div className="flex items-center gap-2 rounded-2xl border border-zinc-200 bg-white px-4 py-3 shadow-xs dark:border-zinc-800 dark:bg-zinc-900">
+                    <div className="flex items-center gap-2 rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur-xl px-4 py-3 shadow-xs dark:border-zinc-800 dark:bg-zinc-900">
                       <div className="flex items-center gap-1">
                         <span className="h-2 w-2 animate-bounce rounded-full bg-zinc-400 [animation-delay:-0.3s] dark:bg-zinc-500" />
                         <span className="h-2 w-2 animate-bounce rounded-full bg-zinc-400 [animation-delay:-0.15s] dark:bg-zinc-500" />
@@ -612,7 +612,7 @@ export default function ChatPage({
                   <button
                     type="submit"
                     disabled={!inputText.trim() && !pendingAttachment}
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-900 text-white transition hover:bg-zinc-800 disabled:opacity-40 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[#0B2F6E] text-white transition hover:bg-[#082352] disabled:opacity-40 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
                   >
                     <Send className="h-4 w-4" />
                   </button>

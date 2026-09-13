@@ -33,7 +33,7 @@ const statusFilterTabs: { label: string; status?: DealStatus | "CANCELLED_OR_EXP
 // ✅ Fix: Strict typing untuk status badge colors
 const statusBadgeColor: Record<DealStatus, string> = {
   NEGOTIATION: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400",
-  DEAL: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",
+  DEAL: "bg-blue-100 text-[#082352] dark:bg-blue-900/40 dark:text-blue-400",
   IN_PROGRESS: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-400",
   COMPLETED: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400",
   CANCELLED: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400",
@@ -181,7 +181,7 @@ export default function DealsPage() {
     <div className="mx-auto max-w-5xl space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+          <h1 className="text-2xl font-black tracking-tight text-[#0B2F6E] dark:text-blue-400">
             Pengelolaan Deal
           </h1>
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
@@ -228,7 +228,7 @@ export default function DealsPage() {
             onClick={() => setSelectedTabIdx(idx)}
             className={`rounded-lg px-3.5 py-1.5 text-xs font-medium transition ${
               selectedTabIdx === idx
-                ? "bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900"
+                ? "bg-[#0B2F6E] text-white dark:bg-zinc-50 dark:text-zinc-900"
                 : "text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
             }`}
           >
@@ -267,7 +267,7 @@ export default function DealsPage() {
           {items.map((deal) => (
             <div
               key={deal.id}
-              className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
+              className="rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur-xl p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
             >
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 pb-4 dark:border-zinc-800">
                 <div className="flex items-center gap-3">
@@ -295,11 +295,11 @@ export default function DealsPage() {
 
               {/* Status Workflow Progress Indicator */}
               <div className="my-4 flex items-center justify-between px-2 text-xs text-zinc-500">
-                <span className={deal.status === "NEGOTIATION" ? "font-bold text-amber-600" : ""}>
+                <span className={deal.status === "NEGOTIATION" ? "font-bold text-[#FF6B00]" : ""}>
                   1. Negosiasi
                 </span>
                 <ArrowRight className="h-3.5 w-3.5 text-zinc-300" />
-                <span className={deal.status === "DEAL" ? "font-bold text-blue-600" : ""}>
+                <span className={deal.status === "DEAL" ? "font-bold text-[#0B2F6E]" : ""}>
                   2. Kesepakatan
                 </span>
                 <ArrowRight className="h-3.5 w-3.5 text-zinc-300" />
@@ -332,7 +332,7 @@ export default function DealsPage() {
                         type="button"
                         onClick={() => handleStatusChange(deal.id, "DEAL")}
                         disabled={updateStatus.isPending}
-                        className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-blue-700 disabled:opacity-50"
+                        className="inline-flex items-center gap-1 rounded-lg bg-[#0B2F6E] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[#082352] disabled:opacity-50"
                       >
                         <CheckCircle2 className="h-3.5 w-3.5" />
                         Sepakati Deal
@@ -363,7 +363,7 @@ export default function DealsPage() {
                       <button
                         type="button"
                         onClick={() => openEscrowModal(deal)}
-                        className="inline-flex items-center gap-1 rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-medium text-blue-600 transition hover:bg-blue-50 dark:border-blue-900/40 dark:text-blue-400"
+                        className="inline-flex items-center gap-1 rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-medium text-[#0B2F6E] transition hover:bg-blue-50 dark:border-blue-900/40 dark:text-blue-400"
                       >
                         <ShieldCheck className="h-3.5 w-3.5" />
                         Mulai Escrow
@@ -385,7 +385,7 @@ export default function DealsPage() {
                       <button
                         type="button"
                         onClick={() => openEscrowModal(deal)}
-                        className="inline-flex items-center gap-1 rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-medium text-blue-600 transition hover:bg-blue-50 dark:border-blue-900/40 dark:text-blue-400"
+                        className="inline-flex items-center gap-1 rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-medium text-[#0B2F6E] transition hover:bg-blue-50 dark:border-blue-900/40 dark:text-blue-400"
                       >
                         <ShieldCheck className="h-3.5 w-3.5" />
                         Mulai Escrow
@@ -415,7 +415,7 @@ export default function DealsPage() {
                     <button
                       type="button"
                       onClick={() => setReviewDeal(deal)}
-                      className="inline-flex items-center gap-1 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-amber-600"
+                      className="inline-flex items-center gap-1 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[#FF6B00]"
                     >
                       <Star className="h-3.5 w-3.5" />
                       Beri Ulasan Mitra
@@ -431,7 +431,7 @@ export default function DealsPage() {
       {/* Review Modal */}
       {reviewDeal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-xl dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="w-full max-w-md rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur-xl p-6 shadow-xl dark:border-zinc-800 dark:bg-zinc-900">
             <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
               Beri Ulasan Deal #{reviewDeal.id.slice(0, 8)}
             </h3>
@@ -492,7 +492,7 @@ export default function DealsPage() {
                 <button
                   type="submit"
                   disabled={createReview.isPending}
-                  className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                  className="rounded-lg bg-[#0B2F6E] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#082352] disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
                 >
                   {createReview.isPending ? "Mengirim…" : "Kirim Ulasan"}
                 </button>
@@ -505,7 +505,7 @@ export default function DealsPage() {
       {/* Escrow Modal — trigger manual POST /escrow/hold terkait Deal ini */}
       {escrowDeal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-xl dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="w-full max-w-md rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur-xl p-6 shadow-xl dark:border-zinc-800 dark:bg-zinc-900">
             <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
               Mulai Escrow — Deal #{escrowDeal.id.slice(0, 8)}
             </h3>
@@ -525,7 +525,7 @@ export default function DealsPage() {
                     onClick={() => setEscrowRole("BUYER")}
                     className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition ${
                       escrowRole === "BUYER"
-                        ? "border-blue-600 bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400"
+                        ? "border-[#0B2F6E] bg-blue-50 text-[#082352] dark:bg-blue-950/40 dark:text-blue-400"
                         : "border-zinc-300 text-zinc-600 dark:border-zinc-700 dark:text-zinc-300"
                     }`}
                   >
@@ -536,7 +536,7 @@ export default function DealsPage() {
                     onClick={() => setEscrowRole("SELLER")}
                     className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition ${
                       escrowRole === "SELLER"
-                        ? "border-blue-600 bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400"
+                        ? "border-[#0B2F6E] bg-blue-50 text-[#082352] dark:bg-blue-950/40 dark:text-blue-400"
                         : "border-zinc-300 text-zinc-600 dark:border-zinc-700 dark:text-zinc-300"
                     }`}
                   >
@@ -562,7 +562,7 @@ export default function DealsPage() {
                   ))}
                 </select>
                 {(myParties?.length ?? 0) === 0 && (
-                  <p className="mt-1 text-xs text-amber-600">
+                  <p className="mt-1 text-xs text-[#FF6B00]">
                     Kamu belum punya Party. Buat dulu di halaman{" "}
                     <span className="font-semibold">Party Saya</span>.
                   </p>
@@ -625,7 +625,7 @@ export default function DealsPage() {
                 <button
                   type="submit"
                   disabled={initiateEscrow.isPending}
-                  className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-50"
+                  className="flex items-center gap-1.5 rounded-lg bg-[#0B2F6E] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#082352] disabled:opacity-50"
                 >
                   {initiateEscrow.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                   Buat Escrow

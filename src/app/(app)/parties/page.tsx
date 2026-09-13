@@ -90,7 +90,7 @@ export default function PartiesPage() {
     <div className="mx-auto max-w-4xl">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-50">Party Saya</h1>
+          <h1 className="text-xl font-black text-[#0B2F6E] dark:text-blue-400">Party Saya</h1>
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
             Kelola akun individu maupun perusahaan yang kamu pakai untuk bertransaksi di
             Sinaptex. Satu Profile bisa punya lebih dari satu Party.
@@ -99,7 +99,7 @@ export default function PartiesPage() {
         {!isCreating && (
           <button
             onClick={() => setIsCreating(true)}
-            className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+            className="flex items-center gap-1.5 rounded-xl bg-[#0B2F6E] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#082352]"
           >
             <Plus className="h-4 w-4" />
             Party Baru
@@ -110,7 +110,7 @@ export default function PartiesPage() {
       {isCreating && (
         <form
           onSubmit={handleCreate}
-          className="mb-6 space-y-4 rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900"
+          className="mb-6 space-y-4 rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur-xl p-5 dark:border-zinc-800 dark:bg-zinc-900"
         >
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
@@ -226,7 +226,7 @@ export default function PartiesPage() {
           <button
             type="submit"
             disabled={createParty.isPending}
-            className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60"
+            className="flex items-center gap-1.5 rounded-xl bg-[#0B2F6E] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#082352] disabled:opacity-60"
           >
             {createParty.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
             Simpan Party
@@ -235,7 +235,7 @@ export default function PartiesPage() {
       )}
 
       {isLoading && (
-        <div className="flex items-center justify-center rounded-2xl border border-zinc-200 bg-white p-10 dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="flex items-center justify-center rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur-xl p-10 dark:border-zinc-800 dark:bg-zinc-900">
           <Loader2 className="h-5 w-5 animate-spin text-zinc-400" />
         </div>
       )}
@@ -320,11 +320,11 @@ function PartyCard({ party }: { party: Party }) {
   }
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur-xl p-5 dark:border-zinc-800 dark:bg-zinc-900">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-950/40">
-            <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <Building2 className="h-5 w-5 text-[#0B2F6E] dark:text-blue-400" />
           </div>
           <div>
             {isEditing ? (
@@ -389,7 +389,7 @@ function PartyCard({ party }: { party: Party }) {
             <button
               onClick={handleSave}
               disabled={updateParty.isPending}
-              className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
+              className="rounded-lg bg-[#0B2F6E] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#082352]"
             >
               Simpan
             </button>
@@ -443,7 +443,7 @@ function PartyCard({ party }: { party: Party }) {
           <button
             onClick={handleAddCapability}
             disabled={addCapability.isPending}
-            className="rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900"
+            className="rounded-lg bg-[#0B2F6E] px-3 py-1.5 text-xs font-semibold text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900"
           >
             {addCapability.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Tambah"}
           </button>

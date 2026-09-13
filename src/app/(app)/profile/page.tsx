@@ -113,7 +113,7 @@ export default function ProfilePage() {
     <div className="mx-auto max-w-4xl space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+        <h1 className="text-2xl font-black tracking-tight text-[#0B2F6E] dark:text-blue-400">
           Profil & Pengaturan
         </h1>
         <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
@@ -136,7 +136,7 @@ export default function ProfilePage() {
       )}
 
       {/* Profile Hero Card */}
-      <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur-xl shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
         {/* Cover / Header */}
         <div className="h-24 bg-gradient-to-r from-zinc-100 to-zinc-200 dark:from-zinc-800 dark:to-zinc-900" />
 
@@ -183,7 +183,7 @@ export default function ProfilePage() {
               </div>
               <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
                 <div
-                  className="h-full rounded-full bg-zinc-900 transition-all duration-500 dark:bg-zinc-50"
+                  className="h-full rounded-full bg-[#0B2F6E] transition-all duration-500 dark:bg-zinc-50"
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
@@ -212,7 +212,7 @@ export default function ProfilePage() {
 
       {/* Edit Form */}
       {isEditing && (
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur-xl p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
           <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Edit Profil</h3>
           <form onSubmit={handleSaveProfile} className="mt-4 grid gap-4 sm:grid-cols-2">
             <div>
@@ -224,7 +224,7 @@ export default function ProfilePage() {
                 required
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none transition focus:bg-white focus:ring-2 focus:ring-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:bg-zinc-900 dark:focus:ring-zinc-700"
+                className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none transition focus:bg-white focus:ring-2 focus:ring-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:bg-[#0B2F6E] dark:focus:ring-zinc-700"
               />
             </div>
             <div>
@@ -236,7 +236,7 @@ export default function ProfilePage() {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="08xxxxxxxxxx"
-                className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none transition focus:bg-white focus:ring-2 focus:ring-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:bg-zinc-900 dark:focus:ring-zinc-700"
+                className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none transition focus:bg-white focus:ring-2 focus:ring-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:bg-[#0B2F6E] dark:focus:ring-zinc-700"
               />
             </div>
             <div className="sm:col-span-2 flex justify-end gap-2">
@@ -250,7 +250,7 @@ export default function ProfilePage() {
               <button
                 type="submit"
                 disabled={updateProfile.isPending}
-                className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                className="rounded-lg bg-[#0B2F6E] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#082352] disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
               >
                 {updateProfile.isPending ? "Menyimpan…" : "Simpan Perubahan"}
               </button>
@@ -266,7 +266,7 @@ export default function ProfilePage() {
             icon={User}
             label="Nama Lengkap"
             value={me?.fullName ?? "Belum diisi"}
-            color="text-blue-600 dark:text-blue-400"
+            color="text-[#0B2F6E] dark:text-blue-400"
             bg="bg-blue-50 dark:bg-blue-950/20"
           />
           <DetailCard
@@ -297,7 +297,7 @@ export default function ProfilePage() {
       <div className="space-y-6">
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-950">
-            <FileCheck className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <FileCheck className="h-4 w-4 text-[#0B2F6E] dark:text-blue-400" />
           </div>
           <div>
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Verifikasi Legal Bisnis</h2>
@@ -321,7 +321,7 @@ export default function ProfilePage() {
         )}
 
         {/* Submit Form */}
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur-xl p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
           <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Ajukan Verifikasi Baru</h3>
           <form onSubmit={handleSubmitVerification} className="mt-4 space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
@@ -333,7 +333,7 @@ export default function ProfilePage() {
                   id="docType"
                   value={documentType}
                   onChange={(e) => setDocumentType(e.target.value)}
-                  className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none transition focus:bg-white focus:ring-2 focus:ring-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:bg-zinc-900 dark:focus:ring-zinc-700"
+                  className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none transition focus:bg-white focus:ring-2 focus:ring-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:bg-[#0B2F6E] dark:focus:ring-zinc-700"
                 >
                   <option value="NIB / SIUP">NIB (Nomor Induk Berusaha) / SIUP</option>
                   <option value="NPWP Badan">NPWP Badan Usaha</option>
@@ -352,7 +352,7 @@ export default function ProfilePage() {
                   value={documentUrl}
                   onChange={(e) => setDocumentUrl(e.target.value)}
                   placeholder="https://storage.googleapis.com/..."
-                  className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none transition focus:bg-white focus:ring-2 focus:ring-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:bg-zinc-900 dark:focus:ring-zinc-700"
+                  className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none transition focus:bg-white focus:ring-2 focus:ring-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:bg-[#0B2F6E] dark:focus:ring-zinc-700"
                 />
               </div>
             </div>
@@ -366,14 +366,14 @@ export default function ProfilePage() {
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Contoh: Dokumen NIB diterbitkan tahun 2024..."
-                className="w-full rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm outline-none transition focus:bg-white focus:ring-2 focus:ring-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:bg-zinc-900 dark:focus:ring-zinc-700"
+                className="w-full rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm outline-none transition focus:bg-white focus:ring-2 focus:ring-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:bg-[#0B2F6E] dark:focus:ring-zinc-700"
               />
             </div>
             <div className="flex justify-end">
               <button
                 type="submit"
                 disabled={submitVerification.isPending}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-[#0B2F6E] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#082352] disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
               >
                 <Upload className="h-4 w-4" />
                 {submitVerification.isPending ? "Mengajukan…" : "Ajukan Verifikasi"}
@@ -415,7 +415,7 @@ export default function ProfilePage() {
                     ) : item.status === "REJECTED" ? (
                       <X className="h-4 w-4 text-red-600 dark:text-red-400" />
                     ) : (
-                      <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                      <Clock className="h-4 w-4 text-[#FF6B00] dark:text-amber-400" />
                     )}
                   </div>
                   {/* Content */}
@@ -429,7 +429,7 @@ export default function ProfilePage() {
                         href={item.documentUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                        className="inline-flex items-center gap-1 text-xs font-medium text-[#0B2F6E] hover:text-[#082352] dark:text-blue-400"
                       >
                         <ExternalLink className="h-3 w-3" />
                         Dokumen
@@ -479,7 +479,7 @@ function DetailCard({
   bg: string;
 }) {
   return (
-    <div className="flex items-center gap-4 rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="flex items-center gap-4 rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur-xl p-5 dark:border-zinc-800 dark:bg-zinc-900">
       <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${bg}`}>
         <Icon className={`h-5 w-5 ${color}`} />
       </div>

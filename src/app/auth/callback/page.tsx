@@ -51,7 +51,7 @@ export default function AuthCallbackPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-zinc-950">
       <div className="text-center">
-        <Loader2 className="mx-auto h-8 w-8 animate-spin text-blue-600" />
+        <Loader2 className="mx-auto h-8 w-8 animate-spin text-[#0B2F6E]" />
         <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">{status}</p>
       </div>
     </div>

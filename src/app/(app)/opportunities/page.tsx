@@ -19,7 +19,7 @@ const statusColor: Record<OpportunityStatus, string> = {
   ACTIVE: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400",
   CLOSED: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400",
   EXPIRED: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400",
-  MATCHED: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",
+  MATCHED: "bg-blue-100 text-[#082352] dark:bg-blue-900/40 dark:text-blue-400",
   CANCELLED: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400",
 };
 
@@ -37,7 +37,7 @@ export default function OpportunitiesPage() {
     <div className="mx-auto max-w-5xl space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+          <h1 className="text-2xl font-black tracking-tight text-[#0B2F6E] dark:text-blue-400">
             Opportunity Saya
           </h1>
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
@@ -50,7 +50,7 @@ export default function OpportunitiesPage() {
         </div>
         <Link
           href="/opportunities/new"
-          className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-zinc-800 active:scale-[0.98] dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+          className="inline-flex items-center gap-1.5 rounded-xl bg-[#0B2F6E] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[#082352] active:scale-[0.98] dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
         >
           <Plus className="h-4 w-4" />
           Buat Opportunity
@@ -66,7 +66,7 @@ export default function OpportunitiesPage() {
             onClick={() => setFilterIdx(i)}
             className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
               filterIdx === i
-                ? "bg-zinc-900 text-white shadow-sm dark:bg-zinc-50 dark:text-zinc-900"
+                ? "bg-[#0B2F6E] text-white shadow-sm dark:bg-zinc-50 dark:text-zinc-900"
                 : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
             }`}
           >
@@ -96,7 +96,7 @@ export default function OpportunitiesPage() {
           </p>
           <Link
             href="/opportunities/new"
-            className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+            className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-[#0B2F6E] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#082352] dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
           >
             <Plus className="h-4 w-4" />
             Buat Opportunity
@@ -110,7 +110,7 @@ export default function OpportunitiesPage() {
             <li key={opp.id}>
               <Link
                 href={`/opportunities/${opp.id}`}
-                className="group flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-white p-5 transition-all hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
+                className="group flex flex-col gap-3 rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur-xl p-5 transition-all hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
               >
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
@@ -118,7 +118,7 @@ export default function OpportunitiesPage() {
                       <span
                         className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${
                           opp.type === "NEED"
-                            ? "bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-400"
+                            ? "bg-blue-50 text-[#082352] dark:bg-blue-950/50 dark:text-blue-400"
                             : "bg-violet-50 text-violet-700 dark:bg-violet-950/50 dark:text-violet-400"
                         }`}
                       >
@@ -132,7 +132,7 @@ export default function OpportunitiesPage() {
                         {opp.status}
                       </span>
                     </div>
-                    <h2 className="mt-2 text-base font-semibold text-zinc-900 transition group-hover:text-blue-600 dark:text-zinc-50 dark:group-hover:text-blue-400">
+                    <h2 className="mt-2 text-base font-semibold text-zinc-900 transition group-hover:text-[#0B2F6E] dark:text-zinc-50 dark:group-hover:text-blue-400">
                       {opp.title}
                     </h2>
                     <p className="mt-1 line-clamp-2 text-sm text-zinc-500 dark:text-zinc-400">

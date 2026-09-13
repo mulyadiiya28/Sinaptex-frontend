@@ -155,22 +155,13 @@ const staticOpportunities: Opportunity[] = [
 ];
 
 const staticCategories: Category[] = [
-  { id: 1, title: "Desain & Kreatif", count: "321 peluang", icon: "Compass" },
-  { id: 2, title: "Pemasaran & Digital", count: "287 peluang", icon: "Megaphone" },
-  { id: 3, title: "IT & Pengembangan", count: "195 peluang", icon: "Code2" },
-  { id: 4, title: "Produksi & Manufaktur", count: "176 peluang", icon: "Factory" },
-  { id: 5, title: "Logistik & Pengiriman", count: "143 peluang", icon: "Truck" },
-  { id: 6, title: "Lainnya", count: "250+ peluang", icon: "LayoutGrid" },
+  { id: 1, title: "Desain & Kreatif", count: "321 peluang", icon: "compass" },
+  { id: 2, title: "Pemasaran & Digital", count: "287 peluang", icon: "megaphone" },
+  { id: 3, title: "IT & Pengembangan", count: "195 peluang", icon: "code2" },
+  { id: 4, title: "Produksi & Manufaktur", count: "176 peluang", icon: "factory" },
+  { id: 5, title: "Logistik & Pengiriman", count: "143 peluang", icon: "truck" },
+  { id: 6, title: "Lainnya", count: "250+ peluang", icon: "layout-grid" },
 ];
-
-const iconMap: Record<string, React.ElementType> = {
-  Compass,
-  Megaphone,
-  Code2,
-  Factory,
-  Truck,
-  LayoutGrid,
-};
 
 function isStaticDemoId(id: string) {
   return /^(need|offer)-\d+/i.test(id);
@@ -219,13 +210,56 @@ async function fetchOpportunities(): Promise<Opportunity[]> {
   return staticOpportunities;
 }
 
-// NOTE: GET /api/v1/categories TIDAK ada di backend (dikonfirmasi — modul
-// "Categories" memang belum diimplementasikan di API). Sebelumnya kode ini
-// tetap memanggil endpoint tsb dan diam-diam fallback ke staticCategories
-// tiap kali gagal — artinya SELALU fallback, request-nya sia-sia. Sekarang
-// langsung pakai staticCategories saja. Kalau backend nanti menyediakan
-// endpoint ini, tinggal aktifkan lagi pemanggilan API-nya di sini.
+// Backend icon field bebas kebab-case (mis. "shopping-bag") — frontend yang
+// map ke komponen Lucide. Daftar ini adalah mapping icon yang paling umum
+// dipakai kategori bisnis; fallback ke LayoutGrid kalau tidak dikenali.
+const backendIconMap: Record<string, React.ElementType> = {
+  "compass": Compass,
+  "megaphone": Megaphone,
+  "code": Code2,
+  "code2": Code2,
+  "factory": Factory,
+  "truck": Truck,
+  "briefcase": Briefcase,
+  "layout-grid": LayoutGrid,
+};
+
+interface RawCategory {
+  id: string;
+  name: string;
+  icon?: string | null;
+  slug?: string;
+  _count?: { opportunities?: number; Product?: number };
+}
+
+// GET /api/v1/categories — endpoint publik ini SUDAH tersedia di backend
+// (modul Category, phase 6). Kalau database belum diisi kategori (admin
+// belum input), responsnya array kosong — pada kasus itu kita fallback ke
+// staticCategories supaya beranda tetap punya konten yang berguna.
 async function fetchCategories(): Promise<Category[]> {
+  try {
+    const res = await apiClient.get<RawCategory[] | { data?: RawCategory[] }>(
+      "/api/v1/categories?isActive=true",
+      { auth: false }
+    );
+    const list = Array.isArray(res)
+      ? res
+      : Array.isArray((res as { data?: RawCategory[] })?.data)
+        ? (res as { data: RawCategory[] }).data
+        : [];
+    if (list.length > 0) {
+      return list.map((c) => ({
+        id: c.id,
+        title: c.name,
+        count: c._count?.opportunities
+          ? `${c._count.opportunities} peluang`
+          : "Lihat peluang",
+        icon: (c.icon && backendIconMap[c.icon.toLowerCase()]) ? c.icon.toLowerCase() : "layout-grid",
+      }));
+    }
+  } catch {
+    /* fallback static di bawah */
+  }
   return staticCategories;
 }
 
@@ -525,7 +559,7 @@ export default function LandingPage() {
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {(categories ?? staticCategories).map((cat) => {
-            const Icon = iconMap[cat.icon] || Briefcase;
+            const Icon = backendIconMap[cat.icon] || LayoutGrid;
             return (
               <div
                 key={String(cat.id)}
