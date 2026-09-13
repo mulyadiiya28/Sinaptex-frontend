@@ -12,11 +12,24 @@ export function AppHeader() {
   const router = useRouter();
   const { isSidebarOpen, toggleSidebar } = useUIStore();
   const me = useSessionStore((s) => s.me);
+  const setIsLoggingOut = useSessionStore((s) => s.setIsLoggingOut);
   const signOut = useSignOut();
 
   async function handleLogout() {
-    await signOut.mutateAsync();
-    router.replace("/login");
+    setIsLoggingOut(true);
+    try {
+      await signOut.mutateAsync();
+    } finally {
+      router.replace("/");
+      // Reset isLoggingOut DITUNDA (bukan langsung di baris berikutnya).
+      // Sebelumnya di-reset sinkron tepat setelah router.replace("/") —
+      // race condition: RequireAuth pada halaman lama yang masih sempat
+      // render sebentar selama transisi client-side membaca isLoggingOut
+      // yang sudah keburu false lagi, lalu ikut redirect ke /login dan
+      // menimpa navigasi ke "/". Delay ini memberi waktu transisi selesai
+      // dulu sebelum flag-nya dilepas.
+      setTimeout(() => setIsLoggingOut(false), 1000);
+    }
   }
 
   return (

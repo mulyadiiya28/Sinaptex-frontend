@@ -26,6 +26,7 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const meFromStore = useSessionStore((s) => s.me);
+  const isLoggingOut = useSessionStore((s) => s.isLoggingOut);
   const { data: meFromQuery, isLoading, isError, error, isFetched } = useMe(
     // Hanya fetch jika store belum punya profil (hindari race mengosongkan UI)
     !meFromStore
@@ -67,6 +68,12 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
 
     // Tidak ada sesi sama sekali
     if (isFetched || hasSupabaseSession === false) {
+      if (isLoggingOut) {
+        // Logout disengaja (tombol "Keluar") — kembali ke beranda, bukan
+        // /login, dan biarkan AppHeader yang menuntaskan redirect-nya.
+        router.replace("/");
+        return;
+      }
       const redirect = encodeURIComponent(pathname || "/dashboard");
       router.replace(`/login?redirect=${redirect}`);
     }
@@ -80,6 +87,7 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
     hasSupabaseSession,
     pathname,
     router,
+    isLoggingOut,
   ]);
 
   if (me) {
