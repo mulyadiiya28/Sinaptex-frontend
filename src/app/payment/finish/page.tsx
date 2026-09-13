@@ -1,29 +1,111 @@
 'use client';
 
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useEffect, Suspense } from 'react';
+import { useEffect, useState, Suspense } from 'react';
+import { apiClient } from '@/lib/api-client';
+
+type OrderData = {
+  id: string;
+  invoiceNumber: string;
+  status: string;
+  totalAmount?: number;
+};
+
+const POLL_INTERVAL = 3000;
+const MAX_POLL = 20;
+
+const FINAL_STATUSES = ['PAID', 'CANCELLED', 'EXPIRED', 'COMPLETED'];
 
 function PaymentFinishContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const orderId = searchParams.get('order_id');
-  const transactionStatus = searchParams.get('transaction_status');
-  const statusCode = searchParams.get('status_code');
+  const invoiceNumber = searchParams.get('order_id');
+  const transactionStatusFromUrl = searchParams.get('transaction_status');
 
-  const isSuccess = transactionStatus === 'settlement' || transactionStatus === 'capture';
-  const isPending = transactionStatus === 'pending';
+  const [orderUuid, setOrderUuid] = useState<string | null>(null);
+  const [realStatus, setRealStatus] = useState<string | null>(null);
+  const [pollCount, setPollCount] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [stopped, setStopped] = useState(false);
 
+  // Polling ke backend sampai status final
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (orderId) {
-        router.replace(`/marketplace/orders/${orderId}`);
-      } else {
-        router.replace('/marketplace/orders');
+    if (!invoiceNumber) return;
+    if (stopped) return;
+
+    let cancelled = false;
+
+    const poll = async () => {
+      try {
+        const order = await apiClient.get<OrderData>(
+          `/marketplace/orders/by-invoice/${invoiceNumber}`
+        );
+
+        if (cancelled) return;
+
+        setOrderUuid(order.id);
+        setRealStatus(order.status);
+
+        if (FINAL_STATUSES.includes(order.status)) {
+          setStopped(true);
+          return;
+        }
+
+        setPollCount((c) => {
+          const next = c + 1;
+          if (next >= MAX_POLL) setStopped(true);
+          return next;
+        });
+      } catch (e) {
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : 'Gagal cek status');
+        }
       }
-    }, 3000);
+    };
+
+    poll();
+    const interval = setInterval(() => {
+      if (stopped) {
+        clearInterval(interval);
+        return;
+      }
+      poll();
+    }, POLL_INTERVAL);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [invoiceNumber, stopped]);
+
+  // Auto-redirect setelah status final
+  useEffect(() => {
+    if (!realStatus || !orderUuid) return;
+    if (!FINAL_STATUSES.includes(realStatus)) return;
+
+    const timer = setTimeout(() => {
+      router.replace(`/marketplace/orders/${orderUuid}`);
+    }, 2500);
     return () => clearTimeout(timer);
-  }, [orderId, router]);
+  }, [realStatus, orderUuid, router]);
+
+  // Status display: pakai realStatus dari backend kalau ada, fallback ke URL hint
+  const displayStatus =
+    realStatus ??
+    (transactionStatusFromUrl === 'settlement'
+      ? 'PAID'
+      : transactionStatusFromUrl === 'pending'
+        ? 'PENDING_PAYMENT'
+        : transactionStatusFromUrl === 'expire'
+          ? 'EXPIRED'
+          : transactionStatusFromUrl === 'deny' || transactionStatusFromUrl === 'cancel'
+            ? 'CANCELLED'
+            : 'PENDING_PAYMENT');
+
+  const isSuccess = displayStatus === 'PAID' || displayStatus === 'COMPLETED';
+  const isPending = displayStatus === 'PENDING_PAYMENT';
+  const isFailed = displayStatus === 'CANCELLED' || displayStatus === 'EXPIRED';
 
   return (
     <div className="min-h-screen flex items-center justify-center p-8 bg-slate-50">
@@ -33,16 +115,14 @@ function PaymentFinishContent() {
             isSuccess ? 'bg-green-100' : isPending ? 'bg-amber-100' : 'bg-red-100'
           }`}
         >
-          <span className="text-3xl">
-            {isSuccess ? '✓' : isPending ? '⏳' : '✕'}
-          </span>
+          <span className="text-3xl">{isSuccess ? '✓' : isPending ? '⏳' : '✕'}</span>
         </div>
 
         <h1 className="text-2xl font-black text-[#0B2F6E]">
           {isSuccess
             ? 'Pembayaran Berhasil'
             : isPending
-              ? 'Pembayaran Diproses'
+              ? 'Menunggu Pembayaran'
               : 'Pembayaran Gagal'}
         </h1>
 
@@ -50,35 +130,49 @@ function PaymentFinishContent() {
           {isSuccess
             ? 'Terima kasih, pesanan Anda sedang diproses.'
             : isPending
-              ? 'Silakan selesaikan pembayaran sesuai instruksi.'
+              ? 'Status pembayaran sedang diverifikasi. Mohon tunggu...'
               : 'Pembayaran tidak berhasil. Silakan coba lagi.'}
         </p>
 
-        {orderId && (
+        {invoiceNumber && (
           <div className="mt-6 rounded-2xl bg-slate-50 p-4 text-left">
-            <div className="text-xs text-zinc-500">Order ID</div>
-            <div className="font-mono text-sm text-zinc-900 break-all">{orderId}</div>
-            {statusCode && (
+            <div className="text-xs text-zinc-500">Invoice</div>
+            <div className="font-mono text-sm text-zinc-900 break-all">{invoiceNumber}</div>
+            {realStatus && (
               <>
-                <div className="text-xs text-zinc-500 mt-2">Status Code</div>
-                <div className="font-mono text-sm text-zinc-900">{statusCode}</div>
+                <div className="text-xs text-zinc-500 mt-2">Status</div>
+                <div className="font-mono text-sm text-zinc-900">{realStatus}</div>
               </>
             )}
           </div>
         )}
 
-        <p className="mt-6 text-xs text-zinc-400">
-          Mengalihkan ke halaman pesanan...
-        </p>
+        {error && <p className="mt-4 text-xs text-red-500">{error}</p>}
 
-        <button
-          onClick={() =>
-            router.replace(orderId ? `/marketplace/orders/${orderId}` : '/marketplace/orders')
-          }
-          className="mt-4 w-full rounded-lg bg-[#0B2F6E] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#082352] transition"
-        >
-          Lihat Pesanan Sekarang
-        </button>
+        {isPending && !stopped && (
+          <p className="mt-6 text-xs text-zinc-400">
+            Memverifikasi status pembayaran... ({pollCount}/{MAX_POLL})
+          </p>
+        )}
+
+        {isPending && stopped && (
+          <p className="mt-6 text-xs text-zinc-400">
+            Verifikasi memakan waktu lebih lama. Silakan cek halaman pesanan nanti.
+          </p>
+        )}
+
+        {(orderUuid || !isPending) && (
+          <button
+            onClick={() =>
+              router.replace(
+                orderUuid ? `/marketplace/orders/${orderUuid}` : '/marketplace/orders'
+              )
+            }
+            className="mt-4 w-full rounded-lg bg-[#0B2F6E] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#082352] transition"
+          >
+            {orderUuid ? 'Lihat Pesanan Sekarang' : 'Kembali ke Daftar Pesanan'}
+          </button>
+        )}
       </div>
     </div>
   );
