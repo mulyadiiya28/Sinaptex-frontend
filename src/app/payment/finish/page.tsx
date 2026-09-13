@@ -3,6 +3,15 @@
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useEffect, useState, Suspense } from 'react';
 import { apiClient } from '@/lib/api-client';
+import {
+  CheckCircle2,
+  Clock,
+  XCircle,
+  Loader2,
+  ArrowRight,
+  Receipt,
+  RefreshCw,
+} from 'lucide-react';
 
 type OrderData = {
   id: string;
@@ -13,7 +22,6 @@ type OrderData = {
 
 const POLL_INTERVAL = 3000;
 const MAX_POLL = 20;
-
 const FINAL_STATUSES = ['PAID', 'CANCELLED', 'EXPIRED', 'COMPLETED'];
 
 function PaymentFinishContent() {
@@ -25,15 +33,13 @@ function PaymentFinishContent() {
 
   const [orderUuid, setOrderUuid] = useState<string | null>(null);
   const [realStatus, setRealStatus] = useState<string | null>(null);
+  const [totalAmount, setTotalAmount] = useState<number | null>(null);
   const [pollCount, setPollCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [stopped, setStopped] = useState(false);
 
-  // Polling ke backend sampai status final
   useEffect(() => {
-    if (!invoiceNumber) return;
-    if (stopped) return;
-
+    if (!invoiceNumber || stopped) return;
     let cancelled = false;
 
     const poll = async () => {
@@ -41,11 +47,11 @@ function PaymentFinishContent() {
         const order = await apiClient.get<OrderData>(
           `/marketplace/orders/by-invoice/${invoiceNumber}`
         );
-
         if (cancelled) return;
 
         setOrderUuid(order.id);
         setRealStatus(order.status);
+        setTotalAmount(order.totalAmount ?? null);
 
         if (FINAL_STATUSES.includes(order.status)) {
           setStopped(true);
@@ -58,9 +64,7 @@ function PaymentFinishContent() {
           return next;
         });
       } catch (e) {
-        if (!cancelled) {
-          setError(e instanceof Error ? e.message : 'Gagal cek status');
-        }
+        if (!cancelled) setError(e instanceof Error ? e.message : 'Gagal cek status');
       }
     };
 
@@ -79,18 +83,17 @@ function PaymentFinishContent() {
     };
   }, [invoiceNumber, stopped]);
 
-  // Auto-redirect setelah status final
   useEffect(() => {
     if (!realStatus || !orderUuid) return;
     if (!FINAL_STATUSES.includes(realStatus)) return;
+    if (realStatus === 'CANCELLED' || realStatus === 'EXPIRED') return;
 
     const timer = setTimeout(() => {
       router.replace(`/marketplace/orders/${orderUuid}`);
-    }, 2500);
+    }, 4000);
     return () => clearTimeout(timer);
   }, [realStatus, orderUuid, router]);
 
-  // Status display: pakai realStatus dari backend kalau ada, fallback ke URL hint
   const displayStatus =
     realStatus ??
     (transactionStatusFromUrl === 'settlement'
@@ -107,72 +110,178 @@ function PaymentFinishContent() {
   const isPending = displayStatus === 'PENDING_PAYMENT';
   const isFailed = displayStatus === 'CANCELLED' || displayStatus === 'EXPIRED';
 
+  const config = isSuccess
+    ? {
+        accent: '#10b981',
+        iconBg: 'bg-emerald-50',
+        iconColor: 'text-emerald-600',
+        icon: CheckCircle2,
+        title: 'Pembayaran Berhasil',
+        subtitle: 'Terima kasih, pesanan Anda sedang kami proses.',
+        badgeText: 'BERHASIL',
+        badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      }
+    : isPending
+      ? {
+          accent: '#0B2F6E',
+          iconBg: 'bg-amber-50',
+          iconColor: 'text-amber-600',
+          icon: Clock,
+          title: 'Menunggu Pembayaran',
+          subtitle: 'Status pembayaran sedang diverifikasi. Mohon tunggu.',
+          badgeText: 'PENDING',
+          badgeClass: 'bg-amber-50 text-amber-700 border-amber-200',
+        }
+      : {
+          accent: '#ef4444',
+          iconBg: 'bg-rose-50',
+          iconColor: 'text-rose-600',
+          icon: XCircle,
+          title: 'Pembayaran Gagal',
+          subtitle: 'Pembayaran tidak berhasil. Silakan coba lagi.',
+          badgeText: 'GAGAL',
+          badgeClass: 'bg-rose-50 text-rose-700 border-rose-200',
+        };
+
+  const Icon = config.icon;
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-8 bg-slate-50">
-      <div className="max-w-md w-full rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur-xl p-8 text-center shadow-sm">
-        <div
-          className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
-            isSuccess ? 'bg-green-100' : isPending ? 'bg-amber-100' : 'bg-red-100'
-          }`}
-        >
-          <span className="text-3xl">{isSuccess ? '✓' : isPending ? '⏳' : '✕'}</span>
-        </div>
+    <div className="min-h-screen bg-slate-50/50 flex items-center justify-center p-4 sm:p-8">
+      <div className="w-full max-w-md">
+        {/* Main card */}
+        <div className="rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur-xl p-8 shadow-sm">
+          {/* Badge */}
+          <div className="flex justify-center">
+            <span
+              className={`inline-block rounded-full border px-3 py-1 text-[10px] font-bold tracking-widest ${config.badgeClass}`}
+            >
+              {config.badgeText}
+            </span>
+          </div>
 
-        <h1 className="text-2xl font-black text-[#0B2F6E]">
-          {isSuccess
-            ? 'Pembayaran Berhasil'
-            : isPending
-              ? 'Menunggu Pembayaran'
-              : 'Pembayaran Gagal'}
-        </h1>
+          {/* Icon */}
+          <div className="flex justify-center mt-6">
+            <div
+              className={`w-20 h-20 rounded-full flex items-center justify-center ${config.iconBg}`}
+            >
+              {isPending && !stopped ? (
+                <Loader2 className={`h-10 w-10 ${config.iconColor} animate-spin`} />
+              ) : (
+                <Icon className={`h-10 w-10 ${config.iconColor}`} />
+              )}
+            </div>
+          </div>
 
-        <p className="mt-3 text-sm text-zinc-600">
-          {isSuccess
-            ? 'Terima kasih, pesanan Anda sedang diproses.'
-            : isPending
-              ? 'Status pembayaran sedang diverifikasi. Mohon tunggu...'
-              : 'Pembayaran tidak berhasil. Silakan coba lagi.'}
-        </p>
+          {/* Title */}
+          <h1 className="mt-6 text-center text-2xl font-black text-[#0B2F6E]">
+            {config.title}
+          </h1>
+          <p className="mt-2 text-center text-sm text-zinc-600">{config.subtitle}</p>
 
-        {invoiceNumber && (
-          <div className="mt-6 rounded-2xl bg-slate-50 p-4 text-left">
-            <div className="text-xs text-zinc-500">Invoice</div>
-            <div className="font-mono text-sm text-zinc-900 break-all">{invoiceNumber}</div>
-            {realStatus && (
-              <>
-                <div className="text-xs text-zinc-500 mt-2">Status</div>
-                <div className="font-mono text-sm text-zinc-900">{realStatus}</div>
-              </>
+          {/* Order details */}
+          {invoiceNumber && (
+            <div className="mt-8 rounded-2xl border border-slate-200/80 bg-slate-50/50 p-4 space-y-3">
+              <div className="flex items-center gap-2 text-zinc-500">
+                <Receipt className="h-4 w-4" />
+                <span className="text-xs font-semibold uppercase tracking-wider">
+                  Detail Pesanan
+                </span>
+              </div>
+
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-zinc-400 font-medium">
+                  Invoice
+                </div>
+                <div className="mt-1 font-mono text-sm text-zinc-900 break-all">
+                  {invoiceNumber}
+                </div>
+              </div>
+
+              {totalAmount !== null && (
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-zinc-400 font-medium">
+                    Total
+                  </div>
+                  <div className="mt-1 text-lg font-black text-[#0B2F6E]">
+                    Rp {totalAmount.toLocaleString('id-ID')}
+                  </div>
+                </div>
+              )}
+
+              {realStatus && (
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-zinc-400 font-medium">
+                    Status
+                  </div>
+                  <div className="mt-1 font-mono text-xs text-zinc-700">{realStatus}</div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Polling indicator */}
+          {isPending && !stopped && (
+            <div className="mt-6 space-y-2">
+              <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
+                <div
+                  className="h-full bg-[#0B2F6E] transition-all duration-500 rounded-full"
+                  style={{ width: `${(pollCount / MAX_POLL) * 100}%` }}
+                />
+              </div>
+              <p className="text-center text-xs text-zinc-400">
+                Memverifikasi status pembayaran... ({pollCount}/{MAX_POLL})
+              </p>
+            </div>
+          )}
+
+          {isPending && stopped && (
+            <p className="mt-6 text-center text-xs text-zinc-400">
+              Verifikasi memakan waktu lebih lama. Silakan cek halaman pesanan nanti.
+            </p>
+          )}
+
+          {error && (
+            <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2">
+              <p className="text-xs text-rose-700">{error}</p>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="mt-8 space-y-2">
+            {orderUuid ? (
+              <button
+                onClick={() => router.replace(`/marketplace/orders/${orderUuid}`)}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-[#0B2F6E] px-4 py-3 text-sm font-semibold text-white hover:bg-[#082352] transition"
+              >
+                Lihat Pesanan
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            ) : (
+              <button
+                onClick={() => router.replace('/marketplace/orders')}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-[#0B2F6E] px-4 py-3 text-sm font-semibold text-white hover:bg-[#082352] transition"
+              >
+                Kembali ke Pesanan
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            )}
+
+            {isFailed && (
+              <button
+                onClick={() => router.replace('/marketplace')}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-zinc-700 hover:bg-slate-50 transition"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Coba Lagi
+              </button>
             )}
           </div>
-        )}
+        </div>
 
-        {error && <p className="mt-4 text-xs text-red-500">{error}</p>}
-
-        {isPending && !stopped && (
-          <p className="mt-6 text-xs text-zinc-400">
-            Memverifikasi status pembayaran... ({pollCount}/{MAX_POLL})
-          </p>
-        )}
-
-        {isPending && stopped && (
-          <p className="mt-6 text-xs text-zinc-400">
-            Verifikasi memakan waktu lebih lama. Silakan cek halaman pesanan nanti.
-          </p>
-        )}
-
-        {(orderUuid || !isPending) && (
-          <button
-            onClick={() =>
-              router.replace(
-                orderUuid ? `/marketplace/orders/${orderUuid}` : '/marketplace/orders'
-              )
-            }
-            className="mt-4 w-full rounded-lg bg-[#0B2F6E] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#082352] transition"
-          >
-            {orderUuid ? 'Lihat Pesanan Sekarang' : 'Kembali ke Daftar Pesanan'}
-          </button>
-        )}
+        {/* Footer note */}
+        <p className="mt-6 text-center text-xs text-zinc-400">
+          Halaman ini otomatis diperbarui. Jangan tutup browser Anda.
+        </p>
       </div>
     </div>
   );
@@ -180,7 +289,13 @@ function PaymentFinishContent() {
 
 export default function PaymentFinishPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center">Memuat...</div>}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-slate-50/50">
+          <Loader2 className="h-8 w-8 text-[#0B2F6E] animate-spin" />
+        </div>
+      }
+    >
       <PaymentFinishContent />
     </Suspense>
   );
