@@ -19,6 +19,8 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { SinaptexLogo } from "@/components/sinaptex-logo";
+import { apiClient } from "@/lib/api-client";
+import { type ApiMenuItem, resolveHref as resolveApiHref } from "@/features/navigation/navigation.hooks";
 
 export interface NavItemChild {
   id: string;
@@ -73,81 +75,96 @@ const staticNavItems: NavItem[] = [
     order: 1,
   },
   {
-    id: "nav-chat",
-    label: "Chat",
-    labelEn: "Chat",
-    href: "/chat",
-    icon: "MessageSquare",
-    position: "primary",
-    order: 2,
-  },
-  {
     id: "nav-marketplace",
     label: "Marketplace",
     labelEn: "Marketplace",
     href: "/marketplace",
     icon: "Store",
     position: "primary",
+    order: 2,
+  },
+  {
+    id: "nav-peluang",
+    label: "Peluang",
+    labelEn: "Opportunities",
+    href: "/opportunities",
+    icon: "Briefcase",
+    position: "primary",
     order: 3,
     children: [
       {
-        id: "nav-marketplace-need",
+        id: "nav-peluang-need",
         label: "Kebutuhan (Need)",
-        labelEn: "Needs",
-        href: "/marketplace?type=need",
-        icon: "Briefcase",
+        labelEn: "Need",
+        href: "/opportunities?type=need",
+        icon: "ArrowDownCircle",
         description: "Temukan kebutuhan bisnis dari mitra",
       },
       {
-        id: "nav-marketplace-offer",
+        id: "nav-peluang-offer",
         label: "Penawaran (Offer)",
-        labelEn: "Offers",
-        href: "/marketplace?type=offer",
-        icon: "Store",
+        labelEn: "Offer",
+        href: "/opportunities?type=offer",
+        icon: "ArrowUpCircle",
         description: "Jelajahi layanan dan produk tersedia",
       },
     ],
   },
   {
-    id: "nav-opportunities",
-    label: "Peluang Bisnis",
-    labelEn: "Opportunities",
-    href: "/opportunities",
-    icon: "Briefcase",
+    id: "nav-tentang",
+    label: "Tentang",
+    labelEn: "About",
+    href: "/pages/tentang-kami",
+    icon: "Info",
     position: "primary",
     order: 4,
   },
   {
-    id: "nav-about",
-    label: "Tentang Kami",
-    labelEn: "About Us",
-    href: "/about",
-    icon: "Info",
+    id: "nav-bantuan",
+    label: "Bantuan",
+    labelEn: "Help",
+    href: "/pages/kontak",
+    icon: "HelpCircle",
     position: "primary",
     order: 5,
   },
   {
-    id: "nav-help",
-    label: "Bantuan",
-    labelEn: "Help",
-    href: "/help",
-    icon: "HelpCircle",
+    id: "nav-notifikasi",
+    label: "Notifikasi",
+    labelEn: "Notifications",
+    href: "/notifications",
+    icon: "Bell",
     position: "secondary",
     order: 6,
-  },
-  {
-    id: "nav-contact",
-    label: "Kontak",
-    labelEn: "Contact",
-    href: "/contact",
-    icon: "Phone",
-    position: "secondary",
-    order: 7,
+    requiresAuth: true,
   },
 ];
 
 async function fetchNavigation(): Promise<NavItem[]> {
-  return staticNavItems;
+  try {
+    const data = await apiClient.get<ApiMenuItem[]>('/navigation/resolve', {
+      params: { placement: 'HEADER' },
+    });
+
+    return data.map((item, idx) => ({
+      id: item.id,
+      label: item.label,
+      href: resolveApiHref(item),
+      icon: item.icon,
+      position: idx < 10 ? "primary" : "secondary",
+      order: item.order ?? idx,
+      isExternal: item.linkType === 'EXTERNAL',
+      children: (item.children || []).map((c) => ({
+        id: c.id,
+        label: c.label,
+        href: resolveApiHref(c),
+        icon: c.icon,
+      })),
+    }));
+  } catch (e) {
+    console.warn('Navigation fetch failed, fallback to static', e);
+    return staticNavItems;
+  }
 }
 
 interface DynamicNavbarProps {
@@ -232,7 +249,15 @@ export function DynamicNavbar({
         {/* Desktop Navigation */}
         <nav className="hidden items-center gap-1 lg:flex">
           {isLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+            <div className="flex items-center gap-2">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div
+                  key={i}
+                  className="h-8 w-20 animate-pulse rounded-lg bg-slate-100"
+                  style={{ animationDelay: `${i * 80}ms` }}
+                />
+              ))}
+            </div>
           ) : (
             primaryItems.map((item) => (
               <div key={item.id} className="relative">
