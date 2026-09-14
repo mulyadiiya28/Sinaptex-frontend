@@ -31,6 +31,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { apiClient } from "@/lib/api-client";
 import { DynamicNavbar } from "@/components/dynamic-navbar";
+import { SiteFooter } from '@/components/site-footer';
 
 interface Opportunity {
   id: string;
@@ -196,9 +197,9 @@ async function fetchOpportunities(): Promise<Opportunity[]> {
           o.budget ||
           (o.budgetMin != null || o.budgetMax != null
             ? [o.budgetMin, o.budgetMax]
-                .filter((n) => n != null)
-                .map((n) => `Rp ${Number(n).toLocaleString("id-ID")}`)
-                .join(" – ")
+              .filter((n) => n != null)
+              .map((n) => `Rp ${Number(n).toLocaleString("id-ID")}`)
+              .join(" – ")
             : "Nego"),
         timeAgo: o.timeAgo || (o.createdAt ? new Date(o.createdAt).toLocaleDateString("id-ID") : ""),
         views: o.views ?? 0,
@@ -297,11 +298,10 @@ function OpportunityCard({ opportunity }: { opportunity: Opportunity }) {
         <div className="flex items-center gap-2">
           {/* Badge Need / Offer */}
           <span
-            className={`rounded-lg px-2.5 py-1 text-[11px] font-bold tracking-wider uppercase ${
-              isNeed
+            className={`rounded-lg px-2.5 py-1 text-[11px] font-bold tracking-wider uppercase ${isNeed
                 ? "bg-amber-500/10 text-[#FF6B00] border border-amber-500/20"
                 : "bg-[#0B2F6E]/10 text-[#0B2F6E] border border-[#0B2F6E]/20"
-            }`}
+              }`}
           >
             {isNeed ? "Need" : "Offer"}
           </span>
@@ -437,10 +437,10 @@ export default function LandingPage() {
   const list = opportunities ?? staticOpportunities;
   const filtered = search.trim()
     ? list.filter(
-        (o) =>
-          o.title.toLowerCase().includes(search.toLowerCase()) ||
-          (o.description || "").toLowerCase().includes(search.toLowerCase())
-      )
+      (o) =>
+        o.title.toLowerCase().includes(search.toLowerCase()) ||
+        (o.description || "").toLowerCase().includes(search.toLowerCase())
+    )
     : list;
 
   return (
@@ -693,6 +693,7 @@ export default function LandingPage() {
           </Link>
         </div>
       </section>
+      <SiteFooter />
     </div>
   );
 }
