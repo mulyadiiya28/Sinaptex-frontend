@@ -8,40 +8,91 @@ import {
   type ApiMenuItem,
 } from '@/features/navigation/navigation.hooks';
 
+type FooterGroup = {
+  id: string;
+  title: string;
+  items: { id: string; label: string; href: string }[];
+};
+
 /**
- * Fallback menu footer — dipakai kalau API /navigation/resolve gagal,
- * atau DB belum di-seed. Biar footer nggak kosong.
+ * Fallback — kalau API gagal / DB belum di-seed.
  */
-const FALLBACK_FOOTER: { label: string; href: string }[] = [
-  { label: 'Tentang Kami', href: '/pages/tentang-kami' },
-  { label: 'Cara Kerja', href: '/pages/cara-kerja' },
-  { label: 'Syarat & Ketentuan', href: '/pages/syarat-ketentuan' },
-  { label: 'Kebijakan Privasi', href: '/pages/kebijakan-privasi' },
-  { label: 'Kontak', href: '/pages/kontak' },
+const FALLBACK_FOOTER: FooterGroup[] = [
+  {
+    id: 'produk',
+    title: 'Produk',
+    items: [
+      { id: 'f-market', label: 'Marketplace', href: '/marketplace' },
+      { id: 'f-opp', label: 'Peluang Bisnis', href: '/opportunities' },
+      { id: 'f-member', label: 'Membership', href: '/membership' },
+    ],
+  },
+  {
+    id: 'tentang',
+    title: 'Tentang',
+    items: [
+      { id: 'f-about', label: 'Tentang Kami', href: '/pages/tentang-kami' },
+      { id: 'f-how', label: 'Cara Kerja', href: '/pages/cara-kerja' },
+    ],
+  },
+  {
+    id: 'kontak',
+    title: 'Kontak & Legal',
+    items: [
+      { id: 'f-contact', label: 'Kontak', href: '/pages/kontak' },
+      { id: 'f-terms', label: 'Syarat & Ketentuan', href: '/pages/syarat-ketentuan' },
+      { id: 'f-privacy', label: 'Kebijakan Privasi', href: '/pages/kebijakan-privasi' },
+    ],
+  },
 ];
 
 export function SiteFooter() {
-  const { data: footerItems, isLoading, isError } = useNavigation('FOOTER');
+  const { data: footerItems, isLoading } = useNavigation('FOOTER');
 
-  // Normalisasi: API data atau fallback
-  const items: { id: string; label: string; href: string }[] =
+  // Bangun group dari DB:
+  // - grouped (parent punya children) → 3 kolom: Produk, Tentang, Kontak
+  // - flat → 1 kolom "Informasi"
+  // - kosong/gagal → FALLBACK_FOOTER
+  const groups: FooterGroup[] =
     footerItems && footerItems.length > 0
-      ? footerItems.map((item: ApiMenuItem) => ({
-          id: item.id,
-          label: item.label,
-          href: resolveHref(item),
-        }))
-      : FALLBACK_FOOTER.map((item, idx) => ({
-          id: `fallback-${idx}`,
-          label: item.label,
-          href: item.href,
-        }));
+      ? (() => {
+          const hasGroups = footerItems.some(
+            (i) => (i.children?.length ?? 0) > 0
+          );
+
+          if (!hasGroups) {
+            return [
+              {
+                id: 'info',
+                title: 'Informasi',
+                items: footerItems.map((item) => ({
+                  id: item.id,
+                  label: item.label,
+                  href: resolveHref(item),
+                })),
+              },
+            ];
+          }
+
+          return footerItems
+            .filter((parent) => (parent.children?.length ?? 0) > 0)
+            .map((parent) => ({
+              id: parent.id,
+              title: parent.label,
+              items: (parent.children || []).map((c) => ({
+                id: c.id,
+                label: c.label,
+                href: resolveHref(c),
+              })),
+            }));
+        })()
+      : FALLBACK_FOOTER;
 
   return (
     <footer className="border-t border-slate-200/80 bg-white/80 backdrop-blur-xl">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
-          {/* Brand column */}
+        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-5">
+          {/* Brand */}
           <div className="lg:col-span-2">
             <SinaptexLogo variant="horizontal" size="sm" theme="light" />
             <p className="mt-4 max-w-sm text-sm text-zinc-600">
@@ -50,35 +101,40 @@ export function SiteFooter() {
             </p>
           </div>
 
-          {/* Menu */}
-          <div>
-            <h3 className="text-xs font-black uppercase tracking-wider text-[#0B2F6E]">
-              Informasi
-            </h3>
-            {isLoading ? (
-              <ul className="mt-4 space-y-2.5">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <li
-                    key={i}
-                    className="h-4 w-32 animate-pulse rounded bg-slate-100"
-                  />
-                ))}
-              </ul>
-            ) : (
-              <ul className="mt-4 space-y-2.5">
-                {items.map((item) => (
-                  <li key={item.id}>
-                    <Link
-                      href={item.href}
-                      className="text-sm text-zinc-600 transition-colors hover:text-[#0B2F6E]"
-                    >
-                      {item.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          {/* Menu groups */}
+          {isLoading
+            ? [1, 2, 3].map((i) => (
+                <div key={i}>
+                  <div className="h-3 w-20 animate-pulse rounded bg-slate-100" />
+                  <ul className="mt-4 space-y-2.5">
+                    {[1, 2, 3].map((j) => (
+                      <li
+                        key={j}
+                        className="h-4 w-32 animate-pulse rounded bg-slate-100"
+                      />
+                    ))}
+                  </ul>
+                </div>
+              ))
+            : groups.map((group) => (
+                <div key={group.id}>
+                  <h3 className="text-xs font-black uppercase tracking-wider text-[#0B2F6E]">
+                    {group.title}
+                  </h3>
+                  <ul className="mt-4 space-y-2.5">
+                    {group.items.map((item) => (
+                      <li key={item.id}>
+                        <Link
+                          href={item.href}
+                          className="text-sm text-zinc-600 transition-colors hover:text-[#0B2F6E]"
+                        >
+                          {item.label}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
         </div>
 
         {/* Bottom bar */}
