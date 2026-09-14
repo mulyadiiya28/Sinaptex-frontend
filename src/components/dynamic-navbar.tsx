@@ -226,7 +226,7 @@ export function DynamicNavbar({
             variant="horizontal"
             size="sm"
             theme="light"
-            taglineText={language === "en" ? "Smart Business Ecosystem" : "Ekosistem Bisnis Cerdas"}
+            taglineText={language === "en" ? "Smart Business & Service Ecosystem" : "Ekosistem Bisnis dan Layanan Cerdas"}
           />
         </Link>
         {/* Desktop Navigation */}

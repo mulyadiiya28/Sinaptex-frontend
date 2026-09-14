@@ -7,7 +7,7 @@ const LOGO_ICON_SRC = "/icons/icon-192x192.svg";
 /** Full lockup (icon + text) bila dibutuhkan sebagai satu gambar */
 const LOGO_FULL_SRC = "/icons/sinaptex-logo.svg";
 
-const DEFAULT_TAGLINE = "Ekosistem Bisnis Dan Layanan Cerdas";
+const DEFAULT_TAGLINE = "Ekosistem Bisnis dan Layanan Cerdas";
 
 interface SinaptexIconProps {
   size?: number;

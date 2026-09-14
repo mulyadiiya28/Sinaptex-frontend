@@ -86,7 +86,7 @@ export default function LoginPage() {
                 Sinaptex
               </span>
               <span className="text-[10px] font-medium leading-tight text-slate-500">
-                Ekosistem Bisnis Dan Layanan Cerdas
+                Ekosistem Bisnis dan Layanan Cerdas
               </span>
             </div>
 
