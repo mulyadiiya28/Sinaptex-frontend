@@ -14,9 +14,6 @@ type FooterGroup = {
   items: { id: string; label: string; href: string }[];
 };
 
-/**
- * Fallback — kalau API gagal / DB belum di-seed.
- */
 const FALLBACK_FOOTER: FooterGroup[] = [
   {
     id: 'produk',
@@ -49,17 +46,12 @@ const FALLBACK_FOOTER: FooterGroup[] = [
 export function SiteFooter() {
   const { data: footerItems, isLoading } = useNavigation('FOOTER');
 
-  // Bangun group dari DB:
-  // - grouped (parent punya children) → 3 kolom: Produk, Tentang, Kontak
-  // - flat → 1 kolom "Informasi"
-  // - kosong/gagal → FALLBACK_FOOTER
   const groups: FooterGroup[] =
     footerItems && footerItems.length > 0
       ? (() => {
           const hasGroups = footerItems.some(
             (i) => (i.children?.length ?? 0) > 0
           );
-
           if (!hasGroups) {
             return [
               {
@@ -73,7 +65,6 @@ export function SiteFooter() {
               },
             ];
           }
-
           return footerItems
             .filter((parent) => (parent.children?.length ?? 0) > 0)
             .map((parent) => ({
@@ -90,9 +81,10 @@ export function SiteFooter() {
 
   return (
     <footer className="border-t border-slate-200/80 bg-white/80 backdrop-blur-xl">
-      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-5">
-          {/* Brand */}
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+        {/* Grid hanya tampil di tablet ke atas */}
+        <div className="hidden gap-10 md:grid md:grid-cols-2 lg:grid-cols-5">
+          {/* Brand column */}
           <div className="lg:col-span-2">
             <SinaptexLogo variant="horizontal" size="sm" theme="light" />
             <p className="mt-4 max-w-sm text-sm text-zinc-600">
@@ -137,12 +129,18 @@ export function SiteFooter() {
               ))}
         </div>
 
-        {/* Bottom bar */}
-        <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-slate-200/80 pt-8 sm:flex-row">
-          <p className="text-xs text-zinc-400">
+        {/* Bottom bar — mobile hanya copyright, desktop full */}
+        <div className="mt-0 flex flex-col items-center justify-between gap-2 text-center md:mt-12 md:flex-row md:border-t md:border-slate-200/80 md:pt-8 md:text-left">
+          {/* Mobile only */}
+          <p className="text-xs text-zinc-400 md:hidden">
+            © {new Date().getFullYear()} - Sinaptex
+          </p>
+
+          {/* Desktop only */}
+          <p className="hidden text-xs text-zinc-400 md:block">
             © {new Date().getFullYear()} Sinaptex. Seluruh hak cipta dilindungi.
           </p>
-          <p className="text-xs text-zinc-400">
+          <p className="hidden text-xs text-zinc-400 md:block">
             Dibuat dengan ❤️ untuk pelaku bisnis Indonesia
           </p>
         </div>

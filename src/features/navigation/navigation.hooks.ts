@@ -26,7 +26,10 @@ export function resolveHref(item: ApiMenuItem): string {
 export function useNavigation(placement: 'HEADER' | 'SIDEBAR' | 'FOOTER') {
   return useQuery({
     queryKey: ['navigation', placement],
-    queryFn: () => apiClient.get<ApiMenuItem[]>('/navigation/resolve', { params: { placement } }),
+    queryFn: () =>
+      apiClient.get<ApiMenuItem[]>('/api/v1/navigation/resolve', {
+        params: { placement },
+      }),
     staleTime: 5 * 60 * 1000,
   });
 }

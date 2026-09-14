@@ -62,14 +62,9 @@ function buildUrl(path: string, params?: FetchOptions["params"]) {
     cleanPath = `/${cleanPath}`;
   }
 
-  const baseHasApiV1 = BASE_URL.endsWith("/api/v1");
-  const pathHasApiV1 =
-    cleanPath.startsWith("/api/v1/") || cleanPath === "/api/v1";
-
-  if (baseHasApiV1 && pathHasApiV1) {
+  // Hindari duplikasi /api/v1 kalau BASE_URL udah punya
+  if (BASE_URL.endsWith("/api/v1") && cleanPath.startsWith("/api/v1/")) {
     cleanPath = cleanPath.substring("/api/v1".length);
-  } else if (!baseHasApiV1 && !pathHasApiV1) {
-    cleanPath = `/api/v1${cleanPath}`;
   }
 
   const url = new URL(`${BASE_URL}${cleanPath}`);
