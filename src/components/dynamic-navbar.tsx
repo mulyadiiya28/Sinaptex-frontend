@@ -15,12 +15,15 @@ import {
   Info,
   HelpCircle,
   Phone,
-  Loader2,
+  Bell,
   MessageSquare,
 } from "lucide-react";
 import { SinaptexLogo } from "@/components/sinaptex-logo";
 import { apiClient } from "@/lib/api-client";
 import { type ApiMenuItem, resolveHref as resolveApiHref } from "@/features/navigation/navigation.hooks";
+import { UserMenu } from "@/components/user-menu";
+import { NotificationBellLink } from "@/components/notification-bell-link";
+import { useSessionStore } from "@/store/use-session-store";
 
 export interface NavItemChild {
   id: string;
@@ -181,6 +184,8 @@ export function DynamicNavbar({
   showAuth = true,
 }: DynamicNavbarProps) {
   const pathname = usePathname();
+  const me = useSessionStore((s) => s.me);
+  const isAuthenticated = !!me;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [langDropdownOpen, setLangDropdownOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
@@ -377,18 +382,27 @@ export function DynamicNavbar({
 
           {showAuth && (
             <>
-              <Link
-                href="/login"
-                className="rounded-xl border border-slate-300 px-4 py-2 text-xs font-bold text-[#0B2F6E] transition-all hover:bg-slate-100"
-              >
-                {language === "en" ? "Sign In" : "Masuk"}
-              </Link>
-              <Link
-                href="/register"
-                className="rounded-xl bg-[#0B2F6E] px-4 py-2 text-xs font-bold text-white shadow-xs transition-all hover:bg-[#082352] active:scale-95"
-              >
-                {language === "en" ? "Sign Up Free" : "Daftar Gratis"}
-              </Link>
+              {isAuthenticated ? (
+                <>
+                  <NotificationBellLink />
+                  <UserMenu />
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    className="rounded-xl border border-slate-300 px-4 py-2 text-xs font-bold text-[#0B2F6E] transition-all hover:bg-slate-100"
+                  >
+                    {language === "en" ? "Sign In" : "Masuk"}
+                  </Link>
+                  <Link
+                    href="/register"
+                    className="rounded-xl bg-[#0B2F6E] px-4 py-2 text-xs font-bold text-white shadow-xs transition-all hover:bg-[#082352] active:scale-95"
+                  >
+                    {language === "en" ? "Sign Up Free" : "Daftar Gratis"}
+                  </Link>
+                </>
+              )}
             </>
           )}
         </div>
@@ -462,20 +476,42 @@ export function DynamicNavbar({
 
             {showAuth && (
               <div className="mt-3 flex flex-col gap-2">
-                <Link
-                  href="/login"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="w-full rounded-xl border border-slate-300 py-2.5 text-center text-sm font-bold text-[#0B2F6E]"
-                >
-                  {language === "en" ? "Sign In" : "Masuk"}
-                </Link>
-                <Link
-                  href="/register"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="w-full rounded-xl bg-[#0B2F6E] py-2.5 text-center text-sm font-bold text-white"
-                >
-                  {language === "en" ? "Sign Up Free" : "Daftar Gratis"}
-                </Link>
+                {isAuthenticated ? (
+                  <>
+                    <Link
+                      href="/notifications"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 py-2.5 text-center text-sm font-bold text-[#0B2F6E]"
+                    >
+                      <Bell className="h-4 w-4" />
+                      {language === "en" ? "Notifications" : "Notifikasi"}
+                    </Link>
+                    <Link
+                      href="/dashboard"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="w-full rounded-xl bg-[#0B2F6E] py-2.5 text-center text-sm font-bold text-white"
+                    >
+                      {language === "en" ? "Dashboard" : "Dashboard"}
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      href="/login"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="w-full rounded-xl border border-slate-300 py-2.5 text-center text-sm font-bold text-[#0B2F6E]"
+                    >
+                      {language === "en" ? "Sign In" : "Masuk"}
+                    </Link>
+                    <Link
+                      href="/register"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="w-full rounded-xl bg-[#0B2F6E] py-2.5 text-center text-sm font-bold text-white"
+                    >
+                      {language === "en" ? "Sign Up Free" : "Daftar Gratis"}
+                    </Link>
+                  </>
+                )}
               </div>
             )}
           </nav>
