@@ -14,8 +14,8 @@ export function resolveApiBaseUrl(): string {
   if (!url) {
     throw new Error(
       "NEXT_PUBLIC_API_URL wajib di-set (lihat .env.example). " +
-        "Aplikasi sengaja TIDAK fallback ke server production untuk mencegah " +
-        "dev environment tanpa sadar membaca/menulis data ke production."
+      "Aplikasi sengaja TIDAK fallback ke server production untuk mencegah " +
+      "dev environment tanpa sadar membaca/menulis data ke production."
     );
   }
 
@@ -62,9 +62,14 @@ function buildUrl(path: string, params?: FetchOptions["params"]) {
     cleanPath = `/${cleanPath}`;
   }
 
-  // Jika BASE_URL sudah berakhiran /api/v1 dan path juga diawali /api/v1, hindari duplikasi
-  if (BASE_URL.endsWith("/api/v1") && cleanPath.startsWith("/api/v1/")) {
+  const baseHasApiV1 = BASE_URL.endsWith("/api/v1");
+  const pathHasApiV1 =
+    cleanPath.startsWith("/api/v1/") || cleanPath === "/api/v1";
+
+  if (baseHasApiV1 && pathHasApiV1) {
     cleanPath = cleanPath.substring("/api/v1".length);
+  } else if (!baseHasApiV1 && !pathHasApiV1) {
+    cleanPath = `/api/v1${cleanPath}`;
   }
 
   const url = new URL(`${BASE_URL}${cleanPath}`);
