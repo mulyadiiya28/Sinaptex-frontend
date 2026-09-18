@@ -43,6 +43,13 @@ export const opportunityApi = {
   close: (id: string) =>
     apiClient.post<Opportunity>(`/api/v1/opportunities/${id}/close`),
 
+  // Fase 2.2 — "Kirim Minat". Auto-buat/pakai ulang conversation chat 1:1
+  // dengan pemilik opportunity. Response: { conversationId }.
+  expressInterest: (id: string, message?: string) =>
+    apiClient.post<{ conversationId: string }>(`/api/v1/opportunities/${id}/interest`, {
+      message,
+    }),
+
   // NOTE: DELETE /opportunities/{id} sengaja tidak diimplementasikan.
   // Endpoint ini TIDAK ada di dokumentasi resmi (cahayaastera.com/api/docs).
   // Backend hanya menyediakan "close" (POST/PATCH /opportunities/{id}/close)

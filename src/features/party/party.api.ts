@@ -5,8 +5,10 @@ export const partyApi = {
   /** GET /parties — list semua Party milik Profile yang login */
   list: () => apiClient.get<Party[]>("/api/v1/parties"),
 
-  /** GET /parties/{id} — publik, dipakai frontend nampilkan profil di halaman Opportunity */
-  get: (id: string) => apiClient.get<Party>(`/api/v1/parties/${id}`, { auth: false }),
+  /** GET /parties/{id} — publik (endpoint pakai optionalAuth: kirim token
+   *  kalau ada supaya backend bisa hitung `isOwner` & tampilkan info rekening
+   *  bank lengkap ke pemiliknya sendiri; anonim tetap bisa akses). */
+  get: (id: string) => apiClient.get<Party>(`/api/v1/parties/${id}`),
 
   /** POST /parties — buat Party baru untuk Profile yang login (mis. akun perusahaan kedua) */
   create: (input: CreatePartyInput) => apiClient.post<Party>("/api/v1/parties", input),

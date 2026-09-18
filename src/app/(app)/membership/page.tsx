@@ -39,11 +39,18 @@ export default function MembershipPage() {
   const checkout = useMembershipCheckout();
 
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  // Bug fix: checkout.isPending adalah state MUTATION TUNGGAL yang dipakai
+  // bersama oleh semua paket (dari satu instance useMembershipCheckout()).
+  // Sebelumnya SEMUA tombol paket ikut disabled + berubah jadi "Memproses…"
+  // begitu salah satu diklik, karena semuanya membaca checkout.isPending
+  // yang sama. Sekarang dilacak paket mana yang benar-benar sedang diklik.
+  const [pendingPlanId, setPendingPlanId] = useState<string | null>(null);
 
   const isMemberActive = status?.isActive ?? false;
 
   async function handleCheckout(planId: string) {
     setCheckoutError(null);
+    setPendingPlanId(planId);
     try {
       const result = await checkout.mutateAsync(planId);
       if (result?.checkoutUrl) {
@@ -67,6 +74,8 @@ export default function MembershipPage() {
       } else {
         setCheckoutError(msg);
       }
+    } finally {
+      setPendingPlanId(null);
     }
   }
 
@@ -208,7 +217,7 @@ export default function MembershipPage() {
                 >
                   {isMemberActive
                     ? "Sudah Aktif"
-                    : checkout.isPending
+                    : pendingPlanId === plan.id
                       ? "Memproses…"
                       : `Pilih ${plan.name}`}
                 </button>

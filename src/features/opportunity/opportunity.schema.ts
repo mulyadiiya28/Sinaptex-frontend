@@ -56,6 +56,9 @@ export const opportunitySchema = z.object({
   createdAt: z.string(),
   party: partySummarySchema.optional().nullable(),
   partyId: z.string().optional().nullable(),
+  // Dihitung server-side (Fase 2.2) — dipakai buat nentuin tampilkan
+  // kontrol pengelolaan (Boost dst.) vs tombol "Kirim Minat".
+  isOwner: z.boolean().optional(),
 });
 export type Opportunity = z.infer<typeof opportunitySchema>;
 

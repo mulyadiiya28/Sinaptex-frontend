@@ -11,8 +11,12 @@ import {
   Search,
   ShieldOff,
   Sparkles,
+  Handshake,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { useConversations, useMessages } from "@/features/chat/chat.hooks";
+import { useCreateDeal } from "@/features/deal/deal.hooks";
 import { useChatSocket } from "@/features/chat/chat-socket";
 import { chatApi } from "@/features/chat/chat.api";
 import { ChatMessage, Conversation, ReactionRecord } from "@/features/chat/chat.schema";
@@ -47,6 +51,13 @@ export default function ChatPage({
   const [lightboxImage, setLightboxImage] = useState<{ url: string; caption?: string } | null>(null);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [isBlockedListOpen, setIsBlockedListOpen] = useState(false);
+  // Fase 2.3 — "Buat Deal" langsung dari Chat (lihat Checklist Rencana Kerja)
+  const [isDealModalOpen, setIsDealModalOpen] = useState(false);
+  const [dealAmount, setDealAmount] = useState("");
+  const [dealNotes, setDealNotes] = useState("");
+  const [dealError, setDealError] = useState<string | null>(null);
+  const [dealSuccessId, setDealSuccessId] = useState<string | null>(null);
+  const createDeal = useCreateDeal();
 
   // Compute active conversation ID
   const activeConvId = useMemo(() => {
@@ -307,6 +318,32 @@ export default function ChatPage({
     }
   }
 
+  function openDealModal() {
+    setDealAmount("");
+    setDealNotes("");
+    setDealError(null);
+    setDealSuccessId(null);
+    setIsDealModalOpen(true);
+  }
+
+  async function handleCreateDeal(e: React.FormEvent) {
+    e.preventDefault();
+    if (!activeConvId) return;
+    setDealError(null);
+
+    try {
+      const amountNum = dealAmount.trim() ? Number(dealAmount) : undefined;
+      const deal = await createDeal.mutateAsync({
+        conversationId: activeConvId,
+        agreedAmount: amountNum && amountNum > 0 ? amountNum : undefined,
+        notes: dealNotes.trim() || undefined,
+      });
+      setDealSuccessId(deal.id);
+    } catch (err) {
+      setDealError(err instanceof Error ? err.message : "Gagal mengajukan deal.");
+    }
+  }
+
   return (
     <div className="mx-auto max-w-6xl space-y-4">
       <div>
@@ -439,6 +476,17 @@ export default function ChatPage({
                 </div>
 
                 <div className="flex items-center gap-2">
+                  {/* Tombol Buat Deal — Fase 2.3 */}
+                  <button
+                    type="button"
+                    onClick={openDealModal}
+                    className="inline-flex items-center gap-1 rounded-lg bg-[#0B2F6E] px-2.5 py-1 text-xs font-medium text-white hover:bg-[#082352]"
+                    title="Ajukan Deal dari percakapan ini"
+                  >
+                    <Handshake className="h-3 w-3" />
+                    Buat Deal
+                  </button>
+
                   {/* Tombol Kelola Blokir */}
                   <button
                     type="button"
@@ -639,6 +687,103 @@ export default function ChatPage({
         isOpen={isBlockedListOpen}
         onClose={() => setIsBlockedListOpen(false)}
       />
+
+      {/* Buat Deal Modal — Fase 2.3 */}
+      {isDealModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur-xl p-6 shadow-xl dark:border-zinc-800 dark:bg-zinc-900">
+            {dealSuccessId ? (
+              <div className="space-y-4 text-center">
+                <Handshake className="mx-auto h-10 w-10 text-emerald-500" />
+                <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+                  Deal berhasil diajukan!
+                </h3>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                  Lawan bicara Anda akan menerima notifikasi. Pantau progresnya di halaman Deal.
+                </p>
+                <div className="flex justify-center gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsDealModalOpen(false)}
+                    className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300"
+                  >
+                    Tutup
+                  </button>
+                  <Link
+                    href="/deals"
+                    className="rounded-lg bg-[#0B2F6E] px-4 py-2 text-sm font-medium text-white hover:bg-[#082352]"
+                  >
+                    Lihat Deal
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <>
+                <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+                  Ajukan Deal
+                </h3>
+                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                  Rangkum kesepakatan dari percakapan ini. Lawan bicara bisa menerima,
+                  bernegosiasi lagi, atau menolak.
+                </p>
+
+                <form onSubmit={handleCreateDeal} className="mt-5 space-y-4">
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                      Nilai kesepakatan (opsional, IDR)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={dealAmount}
+                      onChange={(e) => setDealAmount(e.target.value)}
+                      placeholder="mis. 5000000"
+                      className="w-full rounded-lg border border-zinc-300 bg-white p-2.5 text-sm dark:border-zinc-700 dark:bg-zinc-950"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                      Catatan / syarat kesepakatan (opsional)
+                    </label>
+                    <textarea
+                      value={dealNotes}
+                      onChange={(e) => setDealNotes(e.target.value)}
+                      rows={3}
+                      placeholder="mis. jumlah, tenggat waktu, metode pembayaran yang disepakati..."
+                      className="w-full resize-none rounded-lg border border-zinc-300 bg-white p-2.5 text-sm dark:border-zinc-700 dark:bg-zinc-950"
+                    />
+                  </div>
+
+                  {dealError && (
+                    <div className="flex items-start gap-2 rounded-lg bg-red-50 p-2.5 text-xs text-red-700 dark:bg-red-950/40 dark:text-red-400">
+                      <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                      <span>{dealError}</span>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsDealModalOpen(false)}
+                      className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={createDeal.isPending}
+                      className="flex items-center gap-1.5 rounded-lg bg-[#0B2F6E] px-4 py-2 text-sm font-medium text-white hover:bg-[#082352] disabled:opacity-50"
+                    >
+                      {createDeal.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                      Ajukan Deal
+                    </button>
+                  </div>
+                </form>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Lightbox dialog for viewing images in full size */}
       <ImageLightbox

@@ -56,12 +56,24 @@ export default function OrdersPage() {
             Kembali ke Marketplace
           </Link>
           <h1 className="mt-2 text-2xl font-black tracking-tight text-[#0B2F6E] dark:text-blue-400">
-            Pesanan Saya
+            Riwayat Pesanan (Arsip)
           </h1>
         </div>
       </div>
 
       <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+        {/* Notice: checkout dinonaktifkan per pivot Fase 1.1 — halaman ini
+            cuma arsip transaksi lama, tidak akan ada pesanan baru di sini. */}
+        <div className="mb-6 rounded-xl bg-amber-50 p-3.5 text-xs text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+          Sinaptex tidak lagi memproses checkout marketplace — halaman ini
+          hanya menampilkan riwayat transaksi lama. Untuk kesepakatan baru,
+          gunakan{" "}
+          <Link href="/deals" className="font-semibold underline">
+            halaman Deal
+          </Link>
+          .
+        </div>
+
         {/* Tabs */}
         <div className="mb-6 inline-flex rounded-xl border border-zinc-200 bg-white p-1 dark:border-zinc-800 dark:bg-zinc-900">
           <button

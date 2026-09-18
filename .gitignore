@@ -33,3 +33,9 @@ npm-cache/
 # Temporary
 temp/
 tmp/
+
+# Patch preview & backup
+_patch_preview_v5/
+_backup_features/
+_backup_pages/
+*.bak

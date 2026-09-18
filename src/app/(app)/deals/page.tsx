@@ -11,16 +11,13 @@ import {
   Star,
   MessageSquare,
   AlertCircle,
-  ShieldCheck,
-  Loader2,
+  ClipboardList,
 } from "lucide-react";
 import { useDeals, useUpdateDealStatus } from "@/features/deal/deal.hooks";
 import { useCreateReview } from "@/features/review/review.hooks";
-import { Deal, DealStatus } from "@/features/deal/deal.schema";
-import { useMyParties } from "@/features/party/party.hooks";
-import { useInitiateEscrowHold } from "@/features/escrow/escrow.hooks";
+import { Deal, DealStatus, getCounterpartyProfileId, getCounterpartyName } from "@/features/deal/deal.schema";
+import { useSessionStore } from "@/store/use-session-store";
 
-// ✅ Fix: Type-safe status badge mapping
 const statusFilterTabs: { label: string; status?: DealStatus | "CANCELLED_OR_EXPIRED" }[] = [
   { label: "Semua" },
   { label: "Negosiasi", status: "NEGOTIATION" },
@@ -30,7 +27,6 @@ const statusFilterTabs: { label: string; status?: DealStatus | "CANCELLED_OR_EXP
   { label: "Batal / Expired", status: "CANCELLED_OR_EXPIRED" },
 ];
 
-// ✅ Fix: Strict typing untuk status badge colors
 const statusBadgeColor: Record<DealStatus, string> = {
   NEGOTIATION: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400",
   DEAL: "bg-blue-100 text-[#082352] dark:bg-blue-900/40 dark:text-blue-400",
@@ -40,7 +36,21 @@ const statusBadgeColor: Record<DealStatus, string> = {
   EXPIRED: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400",
 };
 
+/** Label & link chat yang aman untuk kedua jenis deal (invitation vs conversation). */
+function dealOriginLabel(deal: Deal): string {
+  if (deal.conversationId) return `Chat #${deal.conversationId.slice(0, 8)}`;
+  if (deal.invitationId) return `Undangan #${deal.invitationId.slice(0, 8)}`;
+  return "Deal";
+}
+
+function dealChatHref(deal: Deal): string {
+  if (deal.conversationId) return `/chat?conversationId=${deal.conversationId}`;
+  if (deal.invitationId) return `/chat?opportunityId=${deal.invitationId}`;
+  return "/chat";
+}
+
 export default function DealsPage() {
+  const me = useSessionStore((s) => s.me);
   const [selectedTabIdx, setSelectedTabIdx] = useState(0);
   const { data: deals, isLoading, error, refetch, isFetching } = useDeals();
   const updateStatus = useUpdateDealStatus();
@@ -53,73 +63,11 @@ export default function DealsPage() {
   const [reviewSuccessMsg, setReviewSuccessMsg] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  // Escrow modal state (trigger manual dari Deal — lihat handleInitiateEscrow)
-  const [escrowDeal, setEscrowDeal] = useState<Deal | null>(null);
-  const [escrowRole, setEscrowRole] = useState<"BUYER" | "SELLER">("BUYER");
-  const [myPartyId, setMyPartyId] = useState("");
-  const [counterpartyId, setCounterpartyId] = useState("");
-  const [escrowAmount, setEscrowAmount] = useState("");
-  const [escrowNotes, setEscrowNotes] = useState("");
-  const [escrowError, setEscrowError] = useState<string | null>(null);
-  const [escrowSuccessMsg, setEscrowSuccessMsg] = useState<string | null>(null);
-  const { data: myParties } = useMyParties();
-  const initiateEscrow = useInitiateEscrowHold();
-
-  function openEscrowModal(deal: Deal) {
-    setEscrowDeal(deal);
-    setEscrowRole("BUYER");
-    setMyPartyId(myParties?.[0]?.id ?? "");
-    setCounterpartyId("");
-    setEscrowAmount("");
-    setEscrowNotes("");
-    setEscrowError(null);
-  }
-
-  async function handleInitiateEscrow(e: React.FormEvent) {
-    e.preventDefault();
-    if (!escrowDeal) return;
-    setEscrowError(null);
-
-    const amountNum = Number(escrowAmount);
-    if (!myPartyId) {
-      setEscrowError("Pilih Party kamu terlebih dahulu.");
-      return;
-    }
-    if (!counterpartyId.trim()) {
-      setEscrowError("Isi Party ID pihak lawan transaksi.");
-      return;
-    }
-    if (!amountNum || amountNum <= 0) {
-      setEscrowError("Jumlah dana harus lebih dari 0.");
-      return;
-    }
-
-    const buyerPartyId = escrowRole === "BUYER" ? myPartyId : counterpartyId.trim();
-    const sellerPartyId = escrowRole === "BUYER" ? counterpartyId.trim() : myPartyId;
-
-    try {
-      await initiateEscrow.mutateAsync({
-        buyerPartyId,
-        sellerPartyId,
-        amount: amountNum,
-        dealId: escrowDeal.id,
-        notes: escrowNotes.trim() || undefined,
-      });
-      setEscrowSuccessMsg(
-        `Escrow untuk Deal #${escrowDeal.id.slice(0, 8)} berhasil dibuat — dana sudah ditahan (HELD). Lihat & kelola di halaman Escrow.`
-      );
-      setEscrowDeal(null);
-    } catch (err) {
-      setEscrowError(err instanceof Error ? err.message : "Gagal membuat escrow.");
-    }
-  }
-
-  // ✅ Fix: Local optimistic state untuk deal status (sementara menunggu server)
+  // Local optimistic state untuk deal status (sementara menunggu server)
   const [optimisticStatusMap, setOptimisticStatusMap] = useState<Record<string, DealStatus>>({});
 
   const activeTab = statusFilterTabs[selectedTabIdx];
 
-  // ✅ Fix: Apply optimistic status ke data deals
   const displayedDeals = (deals ?? []).map((deal) => ({
     ...deal,
     status: optimisticStatusMap[deal.id] ?? deal.status,
@@ -135,19 +83,24 @@ export default function DealsPage() {
 
   async function handleStatusChange(id: string, newStatus: DealStatus) {
     setActionError(null);
-    // ✅ Fix: Optimistic update — langsung update UI
+
+    let cancelReason: string | undefined;
+    if (newStatus === "CANCELLED") {
+      const input = window.prompt("Alasan pembatalan deal (wajib diisi):");
+      if (!input || !input.trim()) return; // batal, user tidak isi alasan
+      cancelReason = input.trim();
+    }
+
     setOptimisticStatusMap((prev) => ({ ...prev, [id]: newStatus }));
 
     try {
-      await updateStatus.mutateAsync({ id, status: newStatus });
-      // Success: server state akan sync via invalidate
+      await updateStatus.mutateAsync({ id, status: newStatus, cancelReason });
       setOptimisticStatusMap((prev) => {
         const next = { ...prev };
         delete next[id];
         return next;
       });
     } catch (err) {
-      // ✅ Fix: Rollback optimistic update saat error
       setOptimisticStatusMap((prev) => {
         const next = { ...prev };
         delete next[id];
@@ -159,12 +112,19 @@ export default function DealsPage() {
 
   async function handleSubmitReview(e: React.FormEvent) {
     e.preventDefault();
-    if (!reviewDeal) return;
+    if (!reviewDeal || !me) return;
     setActionError(null);
+
+    const revieweeId = getCounterpartyProfileId(reviewDeal, me.id);
+    if (!revieweeId) {
+      setActionError("Tidak bisa menentukan pihak yang direview untuk deal ini.");
+      return;
+    }
 
     try {
       await createReview.mutateAsync({
         dealId: reviewDeal.id,
+        revieweeId,
         rating,
         comment: comment.trim() || undefined,
       });
@@ -202,13 +162,6 @@ export default function DealsPage() {
         <div className="flex items-center gap-2 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
           <CheckCircle2 className="h-5 w-5 shrink-0" />
           <span>{reviewSuccessMsg}</span>
-        </div>
-      )}
-
-      {escrowSuccessMsg && (
-        <div className="flex items-center gap-2 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
-          <ShieldCheck className="h-5 w-5 shrink-0" />
-          <span>{escrowSuccessMsg}</span>
         </div>
       )}
 
@@ -257,174 +210,181 @@ export default function DealsPage() {
             Belum ada deal di kategori ini
           </p>
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            Deal dibuat otomatis ketika undangan matching diterima (Accepted).
+            Deal bisa dibuat otomatis saat undangan matching diterima, atau diajukan
+            langsung dari halaman Chat.
           </p>
         </div>
       )}
 
       {!isLoading && items.length > 0 && (
         <div className="space-y-4">
-          {items.map((deal) => (
-            <div
-              key={deal.id}
-              className="rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur-xl p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 pb-4 dark:border-zinc-800">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">
-                    <Handshake className="h-5 w-5" />
+          {items.map((deal) => {
+            const counterpartyName = me ? getCounterpartyName(deal, me.id) : null;
+            return (
+              <div
+                key={deal.id}
+                className="rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur-xl p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 pb-4 dark:border-zinc-800">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">
+                      <Handshake className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+                        Deal #{deal.id.slice(0, 8)}
+                        {counterpartyName ? ` — dengan ${counterpartyName}` : ""}
+                      </h2>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                        {dealOriginLabel(deal)} · Dibuat: {new Date(deal.createdAt).toLocaleDateString("id-ID")}
+                        {deal.agreedAmount
+                          ? ` · ${new Intl.NumberFormat("id-ID", {
+                              style: "currency",
+                              currency: deal.currency || "IDR",
+                              maximumFractionDigits: 0,
+                            }).format(deal.agreedAmount)}`
+                          : ""}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-                      Deal #{deal.id.slice(0, 8)}
-                    </h2>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                      Undangan #{deal.invitationId.slice(0, 8)} · Dibuat: {new Date(deal.createdAt).toLocaleDateString("id-ID")}
-                    </p>
-                  </div>
-                </div>
 
-                <span
-                  className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${
-                    statusBadgeColor[deal.status] ?? "bg-zinc-100 text-zinc-700"
-                  }`}
-                >
-                  {deal.status}
-                </span>
-              </div>
-
-              {/* Status Workflow Progress Indicator */}
-              <div className="my-4 flex items-center justify-between px-2 text-xs text-zinc-500">
-                <span className={deal.status === "NEGOTIATION" ? "font-bold text-[#FF6B00]" : ""}>
-                  1. Negosiasi
-                </span>
-                <ArrowRight className="h-3.5 w-3.5 text-zinc-300" />
-                <span className={deal.status === "DEAL" ? "font-bold text-[#0B2F6E]" : ""}>
-                  2. Kesepakatan
-                </span>
-                <ArrowRight className="h-3.5 w-3.5 text-zinc-300" />
-                <span className={deal.status === "IN_PROGRESS" ? "font-bold text-indigo-600" : ""}>
-                  3. Pengerjaan
-                </span>
-                <ArrowRight className="h-3.5 w-3.5 text-zinc-300" />
-                <span className={deal.status === "COMPLETED" ? "font-bold text-emerald-600" : ""}>
-                  4. Selesai
-                </span>
-              </div>
-
-              {/* Actions according to state machine */}
-              <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
-                <div className="flex items-center gap-2">
-                  {/* ✅ Fix: Link chat dengan opportunityId untuk context spesifik */}
-                  <Link
-                    href={`/chat?opportunityId=${deal.invitationId}`}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                  <span
+                    className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${
+                      statusBadgeColor[deal.status] ?? "bg-zinc-100 text-zinc-700"
+                    }`}
                   >
-                    <MessageSquare className="h-3.5 w-3.5" />
-                    Buka Chat
-                  </Link>
+                    {deal.status}
+                  </span>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2">
-                  {deal.status === "NEGOTIATION" && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => handleStatusChange(deal.id, "DEAL")}
-                        disabled={updateStatus.isPending}
-                        className="inline-flex items-center gap-1 rounded-lg bg-[#0B2F6E] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[#082352] disabled:opacity-50"
-                      >
-                        <CheckCircle2 className="h-3.5 w-3.5" />
-                        Sepakati Deal
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleStatusChange(deal.id, "CANCELLED")}
-                        disabled={updateStatus.isPending}
-                        className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 dark:border-red-900/40 dark:text-red-400"
-                      >
-                        <XCircle className="h-3.5 w-3.5" />
-                        Batalkan
-                      </button>
-                    </>
-                  )}
+                {/* Status Workflow Progress Indicator */}
+                <div className="my-4 flex items-center justify-between px-2 text-xs text-zinc-500">
+                  <span className={deal.status === "NEGOTIATION" ? "font-bold text-[#FF6B00]" : ""}>
+                    1. Negosiasi
+                  </span>
+                  <ArrowRight className="h-3.5 w-3.5 text-zinc-300" />
+                  <span className={deal.status === "DEAL" ? "font-bold text-[#0B2F6E]" : ""}>
+                    2. Kesepakatan
+                  </span>
+                  <ArrowRight className="h-3.5 w-3.5 text-zinc-300" />
+                  <span className={deal.status === "IN_PROGRESS" ? "font-bold text-indigo-600" : ""}>
+                    3. Pengerjaan
+                  </span>
+                  <ArrowRight className="h-3.5 w-3.5 text-zinc-300" />
+                  <span className={deal.status === "COMPLETED" ? "font-bold text-emerald-600" : ""}>
+                    4. Selesai
+                  </span>
+                </div>
 
-                  {deal.status === "DEAL" && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => handleStatusChange(deal.id, "IN_PROGRESS")}
-                        disabled={updateStatus.isPending}
-                        className="inline-flex items-center gap-1 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-indigo-700 disabled:opacity-50"
-                      >
-                        <PlayCircle className="h-3.5 w-3.5" />
-                        Mulai Pengerjaan
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => openEscrowModal(deal)}
-                        className="inline-flex items-center gap-1 rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-medium text-[#0B2F6E] transition hover:bg-blue-50 dark:border-blue-900/40 dark:text-blue-400"
-                      >
-                        <ShieldCheck className="h-3.5 w-3.5" />
-                        Mulai Escrow
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleStatusChange(deal.id, "CANCELLED")}
-                        disabled={updateStatus.isPending}
-                        className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 dark:border-red-900/40 dark:text-red-400"
-                      >
-                        <XCircle className="h-3.5 w-3.5" />
-                        Batalkan
-                      </button>
-                    </>
-                  )}
-
-                  {deal.status === "IN_PROGRESS" && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => openEscrowModal(deal)}
-                        className="inline-flex items-center gap-1 rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-medium text-[#0B2F6E] transition hover:bg-blue-50 dark:border-blue-900/40 dark:text-blue-400"
-                      >
-                        <ShieldCheck className="h-3.5 w-3.5" />
-                        Mulai Escrow
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleStatusChange(deal.id, "COMPLETED")}
-                        disabled={updateStatus.isPending}
-                        className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-emerald-700 disabled:opacity-50"
-                      >
-                        <CheckCircle2 className="h-3.5 w-3.5" />
-                        Tandai Selesai
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleStatusChange(deal.id, "CANCELLED")}
-                        disabled={updateStatus.isPending}
-                        className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 dark:border-red-900/40 dark:text-red-400"
-                      >
-                        <XCircle className="h-3.5 w-3.5" />
-                        Batalkan
-                      </button>
-                    </>
-                  )}
-
-                  {deal.status === "COMPLETED" && (
-                    <button
-                      type="button"
-                      onClick={() => setReviewDeal(deal)}
-                      className="inline-flex items-center gap-1 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[#FF6B00]"
+                {/* Actions according to state machine */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href={dealChatHref(deal)}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
                     >
-                      <Star className="h-3.5 w-3.5" />
-                      Beri Ulasan Mitra
-                    </button>
-                  )}
+                      <MessageSquare className="h-3.5 w-3.5" />
+                      Buka Chat
+                    </Link>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    {deal.status === "NEGOTIATION" && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => handleStatusChange(deal.id, "DEAL")}
+                          disabled={updateStatus.isPending}
+                          className="inline-flex items-center gap-1 rounded-lg bg-[#0B2F6E] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[#082352] disabled:opacity-50"
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Sepakati Deal
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleStatusChange(deal.id, "CANCELLED")}
+                          disabled={updateStatus.isPending}
+                          className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 dark:border-red-900/40 dark:text-red-400"
+                        >
+                          <XCircle className="h-3.5 w-3.5" />
+                          Batalkan
+                        </button>
+                      </>
+                    )}
+
+                    {deal.status === "DEAL" && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => handleStatusChange(deal.id, "IN_PROGRESS")}
+                          disabled={updateStatus.isPending}
+                          className="inline-flex items-center gap-1 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-indigo-700 disabled:opacity-50"
+                        >
+                          <PlayCircle className="h-3.5 w-3.5" />
+                          Mulai Pengerjaan
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleStatusChange(deal.id, "CANCELLED")}
+                          disabled={updateStatus.isPending}
+                          className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 dark:border-red-900/40 dark:text-red-400"
+                        >
+                          <XCircle className="h-3.5 w-3.5" />
+                          Batalkan
+                        </button>
+                      </>
+                    )}
+
+                    {deal.status === "IN_PROGRESS" && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => handleStatusChange(deal.id, "COMPLETED")}
+                          disabled={updateStatus.isPending}
+                          className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-emerald-700 disabled:opacity-50"
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Tandai Selesai
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleStatusChange(deal.id, "CANCELLED")}
+                          disabled={updateStatus.isPending}
+                          className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 dark:border-red-900/40 dark:text-red-400"
+                        >
+                          <XCircle className="h-3.5 w-3.5" />
+                          Batalkan
+                        </button>
+                      </>
+                    )}
+
+                    {deal.status === "COMPLETED" && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setReviewDeal(deal)}
+                          className="inline-flex items-center gap-1 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[#FF6B00]"
+                        >
+                          <Star className="h-3.5 w-3.5" />
+                          Beri Ulasan Mitra
+                        </button>
+                        <Link
+                          href={`/business-suite/transaksi?dealId=${deal.id}${
+                            deal.agreedAmount ? `&amount=${deal.agreedAmount}` : ""
+                          }&notes=${encodeURIComponent(`Dari Deal #${deal.id.slice(0, 8)}`)}`}
+                          className="inline-flex items-center gap-1 rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                          title="Cuma isi otomatis form Business Suite — Anda tetap perlu pilih kontak & produk, lalu konfirmasi manual"
+                        >
+                          <ClipboardList className="h-3.5 w-3.5" />
+                          Catat sebagai Transaksi
+                        </Link>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -495,140 +455,6 @@ export default function DealsPage() {
                   className="rounded-lg bg-[#0B2F6E] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#082352] disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
                 >
                   {createReview.isPending ? "Mengirim…" : "Kirim Ulasan"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Escrow Modal — trigger manual POST /escrow/hold terkait Deal ini */}
-      {escrowDeal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur-xl p-6 shadow-xl dark:border-zinc-800 dark:bg-zinc-900">
-            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-              Mulai Escrow — Deal #{escrowDeal.id.slice(0, 8)}
-            </h3>
-            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-              Dana akan langsung ditahan (status HELD) begitu escrow dibuat. Pastikan
-              Party ID pihak lawan transaksi sudah benar.
-            </p>
-
-            <form onSubmit={handleInitiateEscrow} className="mt-5 space-y-4">
-              <div>
-                <label className="mb-1.5 block text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                  Peran Party kamu di transaksi ini
-                </label>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setEscrowRole("BUYER")}
-                    className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition ${
-                      escrowRole === "BUYER"
-                        ? "border-[#0B2F6E] bg-blue-50 text-[#082352] dark:bg-blue-950/40 dark:text-blue-400"
-                        : "border-zinc-300 text-zinc-600 dark:border-zinc-700 dark:text-zinc-300"
-                    }`}
-                  >
-                    Buyer (Pembayar)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEscrowRole("SELLER")}
-                    className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition ${
-                      escrowRole === "SELLER"
-                        ? "border-[#0B2F6E] bg-blue-50 text-[#082352] dark:bg-blue-950/40 dark:text-blue-400"
-                        : "border-zinc-300 text-zinc-600 dark:border-zinc-700 dark:text-zinc-300"
-                    }`}
-                  >
-                    Seller (Penerima)
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                  Party kamu
-                </label>
-                <select
-                  value={myPartyId}
-                  onChange={(e) => setMyPartyId(e.target.value)}
-                  className="w-full rounded-lg border border-zinc-300 bg-white p-2.5 text-sm dark:border-zinc-700 dark:bg-zinc-950"
-                >
-                  <option value="">— pilih Party —</option>
-                  {myParties?.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-                {(myParties?.length ?? 0) === 0 && (
-                  <p className="mt-1 text-xs text-[#FF6B00]">
-                    Kamu belum punya Party. Buat dulu di halaman{" "}
-                    <span className="font-semibold">Party Saya</span>.
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                  Party ID lawan transaksi ({escrowRole === "BUYER" ? "Seller" : "Buyer"})
-                </label>
-                <input
-                  value={counterpartyId}
-                  onChange={(e) => setCounterpartyId(e.target.value)}
-                  placeholder="Tempel Party ID mitra transaksi"
-                  className="w-full rounded-lg border border-zinc-300 bg-white p-2.5 text-sm dark:border-zinc-700 dark:bg-zinc-950"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                  Jumlah Dana (IDR)
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  value={escrowAmount}
-                  onChange={(e) => setEscrowAmount(e.target.value)}
-                  placeholder="mis. 5000000"
-                  className="w-full rounded-lg border border-zinc-300 bg-white p-2.5 text-sm dark:border-zinc-700 dark:bg-zinc-950"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                  Catatan (opsional)
-                </label>
-                <textarea
-                  value={escrowNotes}
-                  onChange={(e) => setEscrowNotes(e.target.value)}
-                  rows={2}
-                  className="w-full rounded-lg border border-zinc-300 bg-white p-2.5 text-sm dark:border-zinc-700 dark:bg-zinc-950"
-                />
-              </div>
-
-              {escrowError && (
-                <div className="flex items-start gap-2 rounded-lg bg-red-50 p-2.5 text-xs text-red-700 dark:bg-red-950/40 dark:text-red-400">
-                  <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                  <span>{escrowError}</span>
-                </div>
-              )}
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setEscrowDeal(null)}
-                  className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={initiateEscrow.isPending}
-                  className="flex items-center gap-1.5 rounded-lg bg-[#0B2F6E] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#082352] disabled:opacity-50"
-                >
-                  {initiateEscrow.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-                  Buat Escrow
                 </button>
               </div>
             </form>
