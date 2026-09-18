@@ -14,10 +14,17 @@ import {
   Phone,
   ExternalLink,
   Clock,
+  Landmark,
+  Star,
+  Wallet,
 } from "lucide-react";
 import { useSessionStore } from "@/store/use-session-store";
 import { useProfile, useUpdateProfile } from "@/features/profile/profile.hooks";
 import { useMyVerifications, useSubmitVerification } from "@/features/verification/verification.hooks";
+import { useMyParties, useUpdateParty } from "@/features/party/party.hooks";
+import { useProfileReviews } from "@/features/review/review.hooks";
+import { paymentPreferenceOptions, paymentPreferenceLabels } from "@/features/party/party.schema";
+type PaymentPref = (typeof paymentPreferenceOptions)[number];
 import { PushNotificationSettings } from "@/components/push-notification-settings";
 
 // Profile completion steps
@@ -40,6 +47,57 @@ export default function ProfilePage() {
 
   const { data: verifications, isLoading: isVerifLoading } = useMyVerifications();
   const submitVerification = useSubmitVerification();
+
+  // Fase 3.3 — Rekening Bank & Preferensi Pembayaran (di Party pertama milik user)
+  const { data: myParties } = useMyParties();
+  const primaryParty = myParties?.[0];
+  const updateParty = useUpdateParty();
+  const [isEditingBank, setIsEditingBank] = useState(false);
+  const [bankForm, setBankForm] = useState({
+    bankName: "",
+    bankAccountNumber: "",
+    bankAccountHolder: "",
+    paymentPreferences: [] as PaymentPref[],
+  });
+  const [bankSaveError, setBankSaveError] = useState<string | null>(null);
+
+  function openBankEdit() {
+    setBankForm({
+      bankName: primaryParty?.bankName ?? "",
+      bankAccountNumber: primaryParty?.bankAccountNumber ?? "",
+      bankAccountHolder: primaryParty?.bankAccountHolder ?? "",
+      paymentPreferences: (primaryParty?.paymentPreferences ?? []) as PaymentPref[],
+    });
+    setBankSaveError(null);
+    setIsEditingBank(true);
+  }
+
+  function togglePaymentPref(pref: PaymentPref) {
+    setBankForm((f) => ({
+      ...f,
+      paymentPreferences: f.paymentPreferences.includes(pref)
+        ? f.paymentPreferences.filter((p) => p !== pref)
+        : [...f.paymentPreferences, pref],
+    }));
+  }
+
+  async function handleSaveBank() {
+    if (!primaryParty) return;
+    setBankSaveError(null);
+    try {
+      await updateParty.mutateAsync({ id: primaryParty.id, input: bankForm });
+      setIsEditingBank(false);
+    } catch (err) {
+      setBankSaveError(err instanceof Error ? err.message : "Gagal menyimpan info pembayaran");
+    }
+  }
+
+  // Fase 3.3 — Ulasan & Rating
+  const { data: reviews, isLoading: isReviewsLoading } = useProfileReviews(me?.id ?? "");
+  const avgRating =
+    reviews && reviews.length > 0
+      ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+      : null;
 
   // Edit profile state
   const [isEditing, setIsEditing] = useState(false);
@@ -455,6 +513,216 @@ export default function ProfilePage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Rekening Bank & Preferensi Pembayaran — Fase 3.3 */}
+      <div className="rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur-xl p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Landmark className="h-5 w-5 text-[#0B2F6E] dark:text-blue-400" />
+            <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">
+              Rekening Bank & Preferensi Pembayaran
+            </h2>
+          </div>
+          {primaryParty && !isEditingBank && (
+            <button
+              type="button"
+              onClick={openBankEdit}
+              className="inline-flex items-center gap-1 rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              Edit
+            </button>
+          )}
+        </div>
+        <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+          Sinaptex tidak lagi memproses pembayaran — info ini membantu mitra
+          transfer langsung ke Anda setelah Deal disepakati. Nomor rekening
+          hanya terlihat oleh Anda sendiri di sini; bagikan langsung ke mitra
+          lewat Chat saat sudah Deal.
+        </p>
+
+        {!primaryParty ? (
+          <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
+            Anda belum punya Party (profil bisnis). Buat Party dulu untuk
+            mengisi info pembayaran.
+          </p>
+        ) : isEditingBank ? (
+          <div className="mt-4 space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                  Nama Bank
+                </label>
+                <input
+                  value={bankForm.bankName}
+                  onChange={(e) => setBankForm((f) => ({ ...f, bankName: e.target.value }))}
+                  placeholder="mis. BCA, Mandiri, BRI"
+                  className="w-full rounded-lg border border-zinc-300 bg-white p-2.5 text-sm dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                  Nomor Rekening
+                </label>
+                <input
+                  value={bankForm.bankAccountNumber}
+                  onChange={(e) => setBankForm((f) => ({ ...f, bankAccountNumber: e.target.value }))}
+                  placeholder="1234567890"
+                  className="w-full rounded-lg border border-zinc-300 bg-white p-2.5 text-sm dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                Nama Pemilik Rekening
+              </label>
+              <input
+                value={bankForm.bankAccountHolder}
+                onChange={(e) => setBankForm((f) => ({ ...f, bankAccountHolder: e.target.value }))}
+                placeholder="Sesuai buku tabungan"
+                className="w-full rounded-lg border border-zinc-300 bg-white p-2.5 text-sm dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
+              />
+            </div>
+            <div>
+              <label className="mb-2 block text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                Preferensi Pembayaran
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {paymentPreferenceOptions.map((pref) => (
+                  <button
+                    key={pref}
+                    type="button"
+                    onClick={() => togglePaymentPref(pref)}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                      bankForm.paymentPreferences.includes(pref)
+                        ? "border-[#0B2F6E] bg-[#0B2F6E] text-white"
+                        : "border-zinc-300 text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300"
+                    }`}
+                  >
+                    {paymentPreferenceLabels[pref]}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {bankSaveError && (
+              <div className="flex items-start gap-2 rounded-lg bg-red-50 p-2.5 text-xs text-red-700 dark:bg-red-950/40 dark:text-red-400">
+                <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span>{bankSaveError}</span>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setIsEditingBank(false)}
+                className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveBank}
+                disabled={updateParty.isPending}
+                className="rounded-lg bg-[#0B2F6E] px-4 py-2 text-sm font-medium text-white hover:bg-[#082352] disabled:opacity-50"
+              >
+                {updateParty.isPending ? "Menyimpan…" : "Simpan"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-4 space-y-3">
+            {primaryParty.bankName || primaryParty.bankAccountNumber ? (
+              <div className="flex items-center gap-3 rounded-xl bg-zinc-50 p-3.5 dark:bg-zinc-800/50">
+                <Wallet className="h-5 w-5 shrink-0 text-zinc-400" />
+                <div className="text-sm">
+                  <p className="font-medium text-zinc-900 dark:text-zinc-50">
+                    {primaryParty.bankName || "Bank belum diisi"}
+                    {primaryParty.bankAccountNumber ? ` — ${primaryParty.bankAccountNumber}` : ""}
+                  </p>
+                  {primaryParty.bankAccountHolder && (
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                      a.n. {primaryParty.bankAccountHolder}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                Belum ada info rekening bank. Klik Edit untuk menambahkan.
+              </p>
+            )}
+            {primaryParty.paymentPreferences && primaryParty.paymentPreferences.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {primaryParty.paymentPreferences.map((pref) => (
+                  <span
+                    key={pref}
+                    className="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-[#0B2F6E] dark:bg-blue-950/40 dark:text-blue-400"
+                  >
+                    {paymentPreferenceLabels[pref] ?? pref}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Ulasan & Rating — Fase 3.3 */}
+      <div className="rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur-xl p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="flex items-center gap-2">
+          <Star className="h-5 w-5 text-amber-500" />
+          <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">
+            Ulasan & Rating
+          </h2>
+          {avgRating !== null && (
+            <span className="ml-auto flex items-center gap-1 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+              <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+              {avgRating.toFixed(1)}{" "}
+              <span className="text-xs font-normal text-zinc-500">({reviews?.length} ulasan)</span>
+            </span>
+          )}
+        </div>
+
+        {isReviewsLoading && (
+          <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">Memuat ulasan…</p>
+        )}
+
+        {!isReviewsLoading && (!reviews || reviews.length === 0) && (
+          <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
+            Belum ada ulasan. Ulasan akan muncul di sini setelah mitra memberi
+            penilaian pada Deal yang sudah selesai.
+          </p>
+        )}
+
+        {reviews && reviews.length > 0 && (
+          <div className="mt-4 space-y-3">
+            {reviews.slice(0, 5).map((r) => (
+              <div
+                key={r.id}
+                className="rounded-xl border border-zinc-100 p-3.5 dark:border-zinc-800"
+              >
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      className={`h-3.5 w-3.5 ${
+                        star <= r.rating ? "fill-amber-400 text-amber-400" : "text-zinc-300 dark:text-zinc-700"
+                      }`}
+                    />
+                  ))}
+                  <span className="ml-2 text-xs text-zinc-400">
+                    {new Date(r.createdAt).toLocaleDateString("id-ID")}
+                  </span>
+                </div>
+                {r.comment && (
+                  <p className="mt-1.5 text-sm text-zinc-700 dark:text-zinc-300">{r.comment}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* PWA & Push Notification Settings */}

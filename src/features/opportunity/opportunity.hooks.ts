@@ -65,3 +65,11 @@ export function useCloseOpportunity() {
     },
   });
 }
+
+/** Fase 2.2 — "Kirim Minat" ke pemilik opportunity (auto-buat conversation chat). */
+export function useExpressInterest() {
+  return useMutation({
+    mutationFn: ({ id, message }: { id: string; message?: string }) =>
+      opportunityApi.expressInterest(id, message),
+  });
+}

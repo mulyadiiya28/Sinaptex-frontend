@@ -33,6 +33,9 @@ export const productInquirySchema = z.object({
   expiresAt: z.string().nullable().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
+  // Fase 2.1 — conversation chat yang auto-dibuat/dipakai ulang saat inquiry
+  // diajukan (null kalau gating chat menolak, mis. akun diblokir).
+  conversationId: z.string().nullable().optional(),
   product: z
     .object({
       id: z.string(),

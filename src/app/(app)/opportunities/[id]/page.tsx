@@ -2,6 +2,7 @@
 
 import { use, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Rocket,
   Sparkles,
@@ -9,10 +10,13 @@ import {
   CheckCircle2,
   AlertCircle,
   TrendingUp,
+  Send,
+  Loader2,
 } from "lucide-react";
-import { useOpportunity } from "@/features/opportunity/opportunity.hooks";
+import { useOpportunity, useExpressInterest } from "@/features/opportunity/opportunity.hooks";
 import { useBoostPlans, useActivateBoost } from "@/features/boost/boost.hooks";
 import { OpportunityStatus } from "@/features/opportunity/opportunity.schema";
+import { useSessionStore } from "@/store/use-session-store";
 
 // ✅ Fix: Type-safe status color mapping
 const statusColor: Record<OpportunityStatus, string> = {
@@ -30,14 +34,31 @@ export default function OpportunityDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const router = useRouter();
+  const me = useSessionStore((s) => s.me);
   const { data: opp, isLoading, error, refetch } = useOpportunity(id);
   const { data: boostPlans } = useBoostPlans();
   const activateBoost = useActivateBoost();
+  const expressInterest = useExpressInterest();
 
   const [showBoostModal, setShowBoostModal] = useState(false);
   const [selectedPlanId, setSelectedPlanId] = useState<string>("");
   const [boostSuccess, setBoostSuccess] = useState<string | null>(null);
   const [boostError, setBoostError] = useState<string | null>(null);
+  const [showInterestModal, setShowInterestModal] = useState(false);
+  const [interestMessage, setInterestMessage] = useState("");
+  const [interestError, setInterestError] = useState<string | null>(null);
+
+  async function handleExpressInterest(e: React.FormEvent) {
+    e.preventDefault();
+    setInterestError(null);
+    try {
+      const result = await expressInterest.mutateAsync({ id, message: interestMessage.trim() || undefined });
+      router.push(`/chat?conversationId=${result.conversationId}`);
+    } catch (err) {
+      setInterestError(err instanceof Error ? err.message : "Gagal mengirim minat");
+    }
+  }
 
   async function handleActivateBoost(e: React.FormEvent) {
     e.preventDefault();
@@ -45,10 +66,19 @@ export default function OpportunityDetailPage({
 
     setBoostError(null);
     try {
-      await activateBoost.mutateAsync({
+      const result = await activateBoost.mutateAsync({
         opportunityId: id,
         planId: selectedPlanId,
       });
+      // BUG FIX: sebelumnya modal selalu langsung nutup & bilang "berhasil"
+      // tanpa cek apakah paket ini gratis atau berbayar. Untuk paket
+      // berbayar, backend mengembalikan `paymentUrl` (Midtrans) yang WAJIB
+      // dituju user buat menyelesaikan pembayaran — boost-nya baru aktif
+      // betulan setelah webhook Midtrans masuk, bukan saat checkout dibuat.
+      if (result?.paymentUrl) {
+        window.location.href = result.paymentUrl;
+        return;
+      }
       setBoostSuccess("Boost berhasil diaktifkan! Postingan Anda kini diprioritaskan di matching engine.");
       setShowBoostModal(false);
       refetch();
@@ -127,7 +157,7 @@ export default function OpportunityDetailPage({
             </span>
           </div>
 
-          {opp.status === "ACTIVE" && (
+          {opp.status === "ACTIVE" && opp.isOwner && (
             <button
               type="button"
               onClick={() => {
@@ -201,21 +231,89 @@ export default function OpportunityDetailPage({
         </dl>
 
         <div className="mt-6 flex flex-wrap gap-2 border-t border-zinc-100 pt-6 dark:border-zinc-800">
-          <Link
-            href={`/matching/${opp.id}`}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-[#0B2F6E] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[#082352] active:scale-[0.98] dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
-          >
-            <Sparkles className="h-4 w-4 text-amber-400" />
-            Jalankan Matching Engine
-          </Link>
-          <Link
-            href={`/chat?opportunityId=${opp.id}`}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-4 py-2.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
-          >
-            Chat Terkait Opportunity
-          </Link>
+          {opp.isOwner ? (
+            <>
+              <Link
+                href={`/matching/${opp.id}`}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-[#0B2F6E] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[#082352] active:scale-[0.98] dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+              >
+                <Sparkles className="h-4 w-4 text-amber-400" />
+                Jalankan Matching Engine
+              </Link>
+              <Link
+                href={`/chat?opportunityId=${opp.id}`}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-4 py-2.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              >
+                Chat Terkait Opportunity
+              </Link>
+            </>
+          ) : me ? (
+            <button
+              type="button"
+              onClick={() => setShowInterestModal(true)}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-[#0B2F6E] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[#082352] active:scale-[0.98]"
+            >
+              <Send className="h-4 w-4" />
+              Kirim Minat
+            </button>
+          ) : (
+            <Link
+              href={`/login?redirect=${encodeURIComponent(`/opportunities/${opp.id}`)}`}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-[#0B2F6E] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[#082352]"
+            >
+              Masuk untuk Kirim Minat
+            </Link>
+          )}
         </div>
       </div>
+
+      {/* Kirim Minat Modal — Fase 2.2 */}
+      {showInterestModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur-xl p-6 shadow-xl dark:border-zinc-800 dark:bg-zinc-900">
+            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+              Kirim Minat
+            </h3>
+            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+              Pesan Anda akan langsung membuka percakapan chat dengan pemilik
+              opportunity ini.
+            </p>
+            <form onSubmit={handleExpressInterest} className="mt-4 space-y-3">
+              <textarea
+                value={interestMessage}
+                onChange={(e) => setInterestMessage(e.target.value)}
+                rows={3}
+                maxLength={500}
+                placeholder={`Halo, saya tertarik dengan "${opp.title}"...`}
+                className="w-full resize-none rounded-lg border border-zinc-300 bg-white p-2.5 text-sm outline-none ring-zinc-900 focus:ring-2 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:ring-zinc-100"
+              />
+              {interestError && (
+                <div className="flex items-start gap-2 rounded-lg bg-red-50 p-2.5 text-xs text-red-700 dark:bg-red-950/40 dark:text-red-400">
+                  <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <span>{interestError}</span>
+                </div>
+              )}
+              <div className="flex justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowInterestModal(false)}
+                  className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={expressInterest.isPending}
+                  className="flex items-center gap-1.5 rounded-lg bg-[#0B2F6E] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#082352] disabled:opacity-50"
+                >
+                  {expressInterest.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Kirim & Buka Chat
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Boost Modal */}
       {showBoostModal && (

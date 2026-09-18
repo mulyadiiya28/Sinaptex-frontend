@@ -30,5 +30,12 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    "_backup_features",
+    "_backup_pages",
+    "_patch_preview_v5",
+    "_patch_preview",
+    "_patch_preview_backend"
+  ]
 }

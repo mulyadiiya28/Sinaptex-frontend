@@ -65,8 +65,24 @@ export const partySchema = z.object({
   verifications: z.array(partyVerificationSchema).optional().default([]),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
+  // Fase 3.3 — Rekening Bank & Preferensi Pembayaran. bankAccountNumber &
+  // bankAccountHolder dikosongkan server-side kalau bukan pemilik Party ini
+  // (lihat party.controller.js getParty) — jangan asumsikan selalu terisi.
+  bankName: z.string().nullable().optional(),
+  bankAccountNumber: z.string().nullable().optional(),
+  bankAccountHolder: z.string().nullable().optional(),
+  paymentPreferences: z.array(z.string()).optional().default([]),
+  isOwner: z.boolean().optional(),
 });
 export type Party = z.infer<typeof partySchema>;
+
+export const paymentPreferenceOptions = ["TRANSFER", "COD", "QRIS", "E_WALLET"] as const;
+export const paymentPreferenceLabels: Record<string, string> = {
+  TRANSFER: "Transfer Bank",
+  COD: "COD (Bayar di Tempat)",
+  QRIS: "QRIS",
+  E_WALLET: "E-Wallet",
+};
 
 /** Helper: ambil nama capability sebagai string[] biasa untuk ditampilkan di UI. */
 export function getCapabilityNames(party: Pick<Party, "capabilities">): string[] {
@@ -89,8 +105,16 @@ export const createPartySchema = z.object({
 export type CreatePartyInput = z.infer<typeof createPartySchema>;
 
 /** PATCH /parties/{id} menerima req.body apa adanya — capabilityNames/businessRoles TIDAK
- * diproses di sini (cuma di create), jadi update tidak mengikutkan field itu. */
+ * diproses di sini (cuma di create), jadi update tidak mengikutkan field itu.
+ * Fase 3.3: tambah field rekening bank & preferensi pembayaran (khusus update,
+ * tidak ada di create — party baru dibuat dulu, baru diisi info pembayarannya). */
 export const updatePartySchema = createPartySchema
   .omit({ capabilityNames: true, businessRoles: true })
-  .partial();
+  .partial()
+  .extend({
+    bankName: z.string().max(80).optional(),
+    bankAccountNumber: z.string().max(40).optional(),
+    bankAccountHolder: z.string().max(150).optional(),
+    paymentPreferences: z.array(z.enum(paymentPreferenceOptions)).max(6).optional(),
+  });
 export type UpdatePartyInput = z.infer<typeof updatePartySchema>;

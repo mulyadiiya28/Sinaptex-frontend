@@ -4,10 +4,11 @@ import { CreateReviewInput, Review } from "./review.schema";
 export const reviewApi = {
   /**
    * POST /reviews/deals/{dealId}
-   * Body: { rating, comment }
+   * Body: { revieweeId, rating, comment }
    */
   create: (input: CreateReviewInput) =>
     apiClient.post<Review>(`/api/v1/reviews/deals/${input.dealId}`, {
+      revieweeId: input.revieweeId,
       rating: input.rating,
       comment: input.comment,
     }),

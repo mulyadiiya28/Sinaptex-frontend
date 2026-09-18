@@ -63,6 +63,10 @@ export const productSchema = z.object({
     fulfillmentFlow: fulfillmentFlowSchema,
     isActive: z.boolean(),
     isFeatured: z.boolean(),
+    // Business Suite: default true di backend. false = item internal saja
+    // (tidak tampil di listing Marketplace publik), dipakai Business Suite
+    // (Catat Penjualan/Pembelian, Persediaan) tanpa harus dijual ke publik.
+    isListedInMarketplace: z.boolean().default(true),
     tags: z.array(z.string()),
     createdAt: z.string(),
     updatedAt: z.string(),
