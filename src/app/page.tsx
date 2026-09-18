@@ -59,6 +59,8 @@ interface Category {
   title: string;
   count: string;
   icon: string;
+  slug?: string;
+  href?: string;
 }
 
 // Static contoh UI
@@ -177,38 +179,40 @@ function detailHref(id: string) {
 
 async function fetchOpportunities(): Promise<Opportunity[]> {
   try {
-    const res = await apiClient.get<Opportunity[] | { data?: Opportunity[] }>(
-      "/api/v1/opportunities?limit=12",
-      { auth: false }
-    );
-    const list = Array.isArray(res)
+    const res = await apiClient.get<
+      Opportunity[] | { data?: Opportunity[]; success?: boolean }
+    >("/api/v1/opportunities?limit=12", { auth: false });
+
+    const list: Opportunity[] = Array.isArray(res)
       ? res
       : Array.isArray((res as { data?: Opportunity[] })?.data)
         ? (res as { data: Opportunity[] }).data
         : [];
-    if (list.length > 0) {
-      return list.map((o) => ({
-        ...o,
-        type: o.type || "Need",
-        publisher: o.publisher || o.party?.name || "Mitra Sinaptex",
-        verified: o.verified ?? o.party?.verificationStatus === "APPROVED",
-        category: o.category || "Business",
-        budget:
-          o.budget ||
-          (o.budgetMin != null || o.budgetMax != null
-            ? [o.budgetMin, o.budgetMax]
-              .filter((n) => n != null)
-              .map((n) => `Rp ${Number(n).toLocaleString("id-ID")}`)
-              .join(" – ")
-            : "Nego"),
-        timeAgo: o.timeAgo || (o.createdAt ? new Date(o.createdAt).toLocaleDateString("id-ID") : ""),
-        views: o.views ?? 0,
-      }));
-    }
+
+    // Kalau API kosong atau error → kembalikan [] (JANGAN fallback static)
+    return list.map((o) => ({
+      ...o,
+      type: o.type || "Need",
+      publisher: o.publisher || o.party?.name || "Mitra Sinaptex",
+      verified: o.verified ?? o.party?.verificationStatus === "APPROVED",
+      category: o.category || "Business",
+      budget:
+        o.budget ||
+        (o.budgetMin != null || o.budgetMax != null
+          ? [o.budgetMin, o.budgetMax]
+            .filter((n) => n != null)
+            .map((n) => `Rp ${Number(n).toLocaleString("id-ID")}`)
+            .join(" – ")
+          : "Nego"),
+      timeAgo:
+        o.timeAgo ||
+        (o.createdAt ? new Date(o.createdAt).toLocaleDateString("id-ID") : ""),
+      views: o.views ?? 0,
+    }));
   } catch {
-    /* fallback static */
+    // Error jaringan / server → [] (tidak ada data palsu)
+    return [];
   }
-  return staticOpportunities;
 }
 
 // Backend icon field bebas kebab-case (mis. "shopping-bag") — frontend yang
@@ -230,6 +234,7 @@ interface RawCategory {
   name: string;
   icon?: string | null;
   slug?: string;
+  parentId?: string | null;
   _count?: { opportunities?: number; Product?: number };
 }
 
@@ -239,24 +244,40 @@ interface RawCategory {
 // staticCategories supaya beranda tetap punya konten yang berguna.
 async function fetchCategories(): Promise<Category[]> {
   try {
-    const res = await apiClient.get<RawCategory[] | { data?: RawCategory[] }>(
-      "/api/v1/categories?isActive=true",
-      { auth: false }
-    );
-    const list = Array.isArray(res)
+    const res = await apiClient.get<
+      RawCategory[] | { data?: RawCategory[]; success?: boolean }
+    >("/api/v1/categories?isActive=true", { auth: false });
+
+    // Backend membungkus: { success, message, data: [...] }
+    const list: RawCategory[] = Array.isArray(res)
       ? res
       : Array.isArray((res as { data?: RawCategory[] })?.data)
         ? (res as { data: RawCategory[] }).data
         : [];
+
     if (list.length > 0) {
-      return list.map((c) => ({
-        id: c.id,
-        title: c.name,
-        count: c._count?.opportunities
-          ? `${c._count.opportunities} peluang`
-          : "Lihat peluang",
-        icon: (c.icon && backendIconMap[c.icon.toLowerCase()]) ? c.icon.toLowerCase() : "layout-grid",
-      }));
+      // Ambil HANYA kategori utama (parentId null), max 8, urut by name
+      const topLevel = list
+        .filter((c) => !c.parentId)
+        .sort((a, b) => a.name.localeCompare(b.name, "id"))
+        .slice(0, 8);
+
+      if (topLevel.length > 0) {
+        return topLevel.map((c) => {
+          const slug = c.slug ?? String(c.id);
+          return {
+            id: c.id,
+            title: c.name,
+            count: "Jelajahi peluang",
+            icon:
+              c.icon && backendIconMap[c.icon.toLowerCase()]
+                ? c.icon.toLowerCase()
+                : "layout-grid",
+            slug,
+            href: `/marketplace?category=${encodeURIComponent(slug)}`,
+          };
+        });
+      }
     }
   } catch {
     /* fallback static di bawah */
@@ -299,8 +320,8 @@ function OpportunityCard({ opportunity }: { opportunity: Opportunity }) {
           {/* Badge Need / Offer */}
           <span
             className={`rounded-lg px-2.5 py-1 text-[11px] font-bold tracking-wider uppercase ${isNeed
-                ? "bg-amber-500/10 text-[#FF6B00] border border-amber-500/20"
-                : "bg-[#0B2F6E]/10 text-[#0B2F6E] border border-[#0B2F6E]/20"
+              ? "bg-amber-500/10 text-[#FF6B00] border border-amber-500/20"
+              : "bg-[#0B2F6E]/10 text-[#0B2F6E] border border-[#0B2F6E]/20"
               }`}
           >
             {isNeed ? "Need" : "Offer"}
@@ -549,32 +570,48 @@ export default function LandingPage() {
       </section>
 
       {/* Kategori Section */}
+      {/* Kategori Section */}
       <section className="relative mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="mb-8 text-center sm:text-left">
-          <h2 className="text-2xl font-black text-[#0B2F6E]">Kategori Bisnis Populer</h2>
-          <p className="mt-1 text-xs sm:text-sm text-slate-500">
-            Jelajahi berbagai bidang spesialisasi sektor bisnis B2B
-          </p>
+        <div className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div className="text-center sm:text-left">
+            <h2 className="text-2xl font-black text-[#0B2F6E]">Jelajahi Kategori</h2>
+            <p className="mt-1 text-xs sm:text-sm text-slate-500">
+              Temukan peluang & mitra sesuai bidang bisnis Anda
+            </p>
+          </div>
+          <Link
+            href="/marketplace"
+            className="inline-flex items-center justify-center gap-1 text-xs font-bold text-[#0B2F6E] transition-colors hover:text-[#FF6B00] sm:text-sm"
+          >
+            Lihat semua kategori
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {(categories ?? staticCategories).map((cat) => {
             const Icon = backendIconMap[cat.icon] || LayoutGrid;
+            const href =
+              cat.href ??
+              `/marketplace?category=${encodeURIComponent(cat.slug ?? String(cat.id))}`;
             return (
-              <div
+              <Link
                 key={String(cat.id)}
-                className="group flex items-center gap-4 rounded-3xl border border-slate-200/80 bg-white/90 p-4 shadow-sm backdrop-blur-xl transition-all duration-200 hover:-translate-y-1 hover:border-[#0B2F6E]/30 hover:shadow-md"
+                href={href}
+                aria-label={`Lihat kategori ${cat.title}`}
+                className="group flex items-center gap-4 rounded-3xl border border-slate-200/80 bg-white/90 p-4 shadow-sm backdrop-blur-xl transition-all duration-200 hover:-translate-y-1 hover:border-[#0B2F6E]/30 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B2F6E]/40"
               >
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#0B2F6E]/10 text-[#0B2F6E] transition-colors group-hover:bg-[#0B2F6E] group-hover:text-white">
                   <Icon className="h-6 w-6" />
                 </div>
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className="font-bold text-slate-900 group-hover:text-[#0B2F6E]">
                     {cat.title}
                   </p>
                   <p className="text-xs font-medium text-slate-500">{cat.count}</p>
                 </div>
-              </div>
+                <ArrowRight className="h-4 w-4 shrink-0 text-slate-300 transition-all group-hover:translate-x-0.5 group-hover:text-[#0B2F6E]" />
+              </Link>
             );
           })}
         </div>
