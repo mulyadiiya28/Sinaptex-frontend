@@ -14,8 +14,9 @@ import {
   Handshake,
   Loader2,
   AlertCircle,
+  Trash2,
 } from "lucide-react";
-import { useConversations, useMessages } from "@/features/chat/chat.hooks";
+import { useConversations, useMessages, useDeleteMessage } from "@/features/chat/chat.hooks";
 import { useCreateDeal } from "@/features/deal/deal.hooks";
 import { useChatSocket } from "@/features/chat/chat-socket";
 import { chatApi } from "@/features/chat/chat.api";
@@ -70,6 +71,7 @@ export default function ChatPage({
   }, [selectedConvId, targetOppId, conversations]);
 
   const { data: historyMessages, isLoading: isMsgLoading } = useMessages(activeConvId);
+  const deleteMessage = useDeleteMessage(activeConvId);
 
   const handleSocketReaction = useCallback(
     (data: { messageId: string; emoji: string; userId: string; action?: "add" | "remove" | "toggle" }) => {
@@ -415,7 +417,7 @@ export default function ChatPage({
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
-                        {conv.originType} Chat
+                        {conv.counterpart?.fullName ?? "Percakapan"}
                       </span>
                       <span className="rounded bg-zinc-200/70 px-1.5 py-0.5 text-[10px] font-medium text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300">
                         {conv.originType}
@@ -467,10 +469,10 @@ export default function ChatPage({
                   </div>
                   <div>
                     <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-                      Room {activeConvId.slice(0, 12)}
+                      {activeConv?.counterpart?.fullName ?? "Percakapan"}
                     </h2>
                     <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
-                      Tipe: {activeConv?.originType ?? "NEED"} · Socket.IO Terhubung
+                      Socket.IO Terhubung
                     </p>
                   </div>
                 </div>
@@ -551,6 +553,20 @@ export default function ChatPage({
                             setActivePickerMsgId((prev) => (prev === msg.id ? null : msg.id))
                           }
                         />
+                        {isMe && !msg.deletedAt && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (window.confirm("Hapus pesan ini?")) {
+                                deleteMessage.mutate(msg.id);
+                              }
+                            }}
+                            className="flex h-7 w-7 items-center justify-center rounded-full text-zinc-400 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 dark:hover:bg-red-950/40"
+                            title="Hapus pesan"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        )}
                         <div
                           className={`max-w-md overflow-hidden rounded-2xl text-sm ${isMe
                             ? "bg-[#0B2F6E] text-white dark:bg-zinc-100 dark:text-zinc-900"
@@ -580,7 +596,11 @@ export default function ChatPage({
                               className={`whitespace-pre-wrap ${hasImage ? "px-2 py-1.5 text-xs" : ""
                                 }`}
                             >
-                              {msg.content}
+                              {msg.deletedAt ? (
+                                <span className="italic opacity-60">Pesan telah dihapus</span>
+                              ) : (
+                                msg.content
+                              )}
                             </p>
                           )}
                         </div>

@@ -9,11 +9,13 @@ interface ProductCardProps {
   product: Product;
 }
 
-function formatPrice(price: number, currency: string = "IDR"): string {
-  if (currency === "IDR") {
-    return `Rp ${price.toLocaleString("id-ID")}`;
+function formatPrice(price: number | null | undefined, currency: string = "IDR"): string {
+  const n = Number(price ?? 0);
+  if (!Number.isFinite(n)) {
+    return currency === "IDR" ? "Rp 0" : `${currency} 0`;
   }
-  return `${currency} ${price.toLocaleString("en-US")}`;
+  if (currency === "IDR") return `Rp ${n.toLocaleString("id-ID")}`;
+  return `${currency} ${n.toLocaleString("en-US")}`;
 }
 
 function getSectorLabel(sector: string): string {

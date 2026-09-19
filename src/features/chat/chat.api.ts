@@ -72,6 +72,12 @@ export const chatApi = {
   markAsRead: (conversationId: string) =>
     apiClient.patch<null>(`/api/v1/chat/conversations/${conversationId}/read`),
 
+  /**
+   * Soft delete pesan — hanya pengirim. Lihat chat.service.js deleteMessage.
+   */
+  deleteMessage: (messageId: string) =>
+    apiClient.delete<null>(`/api/v1/chat/messages/${messageId}`),
+
   // ============================================
   // REPORT PEER (FR-16 anti-spam)
   // ============================================

@@ -23,9 +23,13 @@ interface OrderSubCardProps {
   orderCurrency?: string;
 }
 
-function formatPrice(price: number, currency: string = "IDR"): string {
-  if (currency === "IDR") return `Rp ${price.toLocaleString("id-ID")}`;
-  return `${currency} ${price.toLocaleString("en-US")}`;
+function formatPrice(price: number | null | undefined, currency: string = "IDR"): string {
+  const n = Number(price ?? 0);
+  if (!Number.isFinite(n)) {
+    return currency === "IDR" ? "Rp 0" : `${currency} 0`;
+  }
+  if (currency === "IDR") return `Rp ${n.toLocaleString("id-ID")}`;
+  return `${currency} ${n.toLocaleString("en-US")}`;
 }
 
 const SUB_STATUS_CONFIG: Record<
@@ -134,11 +138,11 @@ export function OrderSubCard({ sub, isBuyer, orderCurrency = "IDR" }: OrderSubCa
                       {item.product?.name ?? item.productName ?? "Produk"}
                     </p>
                     <p className="text-xs text-zinc-500">
-                      {item.quantity} {item.unit ?? "pcs"} × {formatPrice(item.price, orderCurrency)}
+                      {item.quantity} {item.unit ?? "pcs"} × {formatPrice(item.price ?? 0, orderCurrency)}
                     </p>
                   </div>
                   <p className="shrink-0 text-sm font-bold text-zinc-900 dark:text-zinc-100">
-                    {formatPrice(item.price * item.quantity, orderCurrency)}
+                    {formatPrice((item.price ?? 0) * (item.quantity ?? 0), orderCurrency)}
                   </p>
                 </div>
               );

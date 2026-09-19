@@ -29,6 +29,7 @@ export const messageSchema = z.object({
   senderId: z.string(),
   content: z.string(),
   createdAt: z.string(),
+  deletedAt: z.string().nullable().optional(),
   reactions: z.record(z.string(), z.array(z.string())).optional(),
   imageUrl: z.string().optional(),
   attachments: z.array(messageAttachmentSchema).optional(),
@@ -40,6 +41,11 @@ export const conversationSchema = z.object({
   originType: chatOriginTypeSchema,
   opportunityId: z.string().nullable().optional(),
   lastMessage: messageSchema.nullable().optional(),
+  counterpart: z.object({
+    id: z.string(),
+    fullName: z.string(),
+    avatarUrl: z.string().nullable().optional(),
+  }).nullable().optional(),
 });
 export type Conversation = z.infer<typeof conversationSchema>;
 

@@ -10,9 +10,13 @@ interface CartItemProps {
   item: CartItemType;
 }
 
-function formatPrice(price: number, currency: string = "IDR"): string {
-  if (currency === "IDR") return `Rp ${price.toLocaleString("id-ID")}`;
-  return `${currency} ${price.toLocaleString("en-US")}`;
+function formatPrice(price: number | null | undefined, currency: string = "IDR"): string {
+  const n = Number(price ?? 0);
+  if (!Number.isFinite(n)) {
+    return currency === "IDR" ? "Rp 0" : `${currency} 0`;
+  }
+  if (currency === "IDR") return `Rp ${n.toLocaleString("id-ID")}`;
+  return `${currency} ${n.toLocaleString("en-US")}`;
 }
 
 export function CartItem({ item }: CartItemProps) {

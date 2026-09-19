@@ -63,3 +63,18 @@ export function useUnblockProfile() {
     },
   });
 }
+
+// ============================================
+// DELETE MESSAGE (soft delete)
+// ============================================
+export function useDeleteMessage(conversationId: string | null) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (messageId: string) => chatApi.deleteMessage(messageId),
+    onSuccess: () => {
+      if (conversationId) {
+        queryClient.invalidateQueries({ queryKey: chatKeys.messages(conversationId) });
+      }
+    },
+  });
+}
