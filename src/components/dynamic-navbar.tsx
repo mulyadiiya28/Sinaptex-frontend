@@ -145,7 +145,7 @@ const staticNavItems: NavItem[] = [
 
 async function fetchNavigation(): Promise<NavItem[]> {
   try {
-    const data = await apiClient.get<ApiMenuItem[]>('/navigation/resolve', {
+    const data = await apiClient.get<ApiMenuItem[]>('/api/v1/navigation/resolve', {
       params: { placement: 'HEADER' },
     });
 

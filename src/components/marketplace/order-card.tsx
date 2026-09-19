@@ -10,9 +10,13 @@ interface OrderCardProps {
   variant?: "buyer" | "seller";
 }
 
-function formatPrice(price: number, currency: string = "IDR"): string {
-  if (currency === "IDR") return `Rp ${price.toLocaleString("id-ID")}`;
-  return `${currency} ${price.toLocaleString("en-US")}`;
+function formatPrice(price: number | null | undefined, currency: string = "IDR"): string {
+  const n = Number(price ?? 0);
+  if (!Number.isFinite(n)) {
+    return currency === "IDR" ? "Rp 0" : `${currency} 0`;
+  }
+  if (currency === "IDR") return `Rp ${n.toLocaleString("id-ID")}`;
+  return `${currency} ${n.toLocaleString("en-US")}`;
 }
 
 function formatDate(dateStr: string): string {
@@ -121,7 +125,7 @@ export function OrderCard({ order, variant = "buyer" }: OrderCardProps) {
                 </p>
                 <p className="text-[10px] text-zinc-500">
                   {item.quantity} {item.unit ?? "pcs"} ×{" "}
-                  {formatPrice(item.price, order.currency)}
+                  {formatPrice(item.price ?? 0, order.currency)}
                 </p>
               </div>
             </div>
