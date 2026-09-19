@@ -70,3 +70,13 @@ export function useRemoveCapability() {
     },
   });
 }
+
+export function useDeleteParty() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => partyApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: partyKeys.mine() });
+    },
+  });
+}

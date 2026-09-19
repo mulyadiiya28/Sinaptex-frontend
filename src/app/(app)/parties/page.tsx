@@ -18,6 +18,7 @@ import {
   useUpdateParty,
   useAddCapability,
   useRemoveCapability,
+  useDeleteParty,
 } from "@/features/party/party.hooks";
 import { getCapabilityNames, Party } from "@/features/party/party.schema";
 
@@ -269,6 +270,9 @@ export default function PartiesPage() {
 
 function PartyCard({ party }: { party: Party }) {
   const updateParty = useUpdateParty();
+  const deleteParty = useDeleteParty();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const addCapability = useAddCapability();
   const removeCapability = useRemoveCapability();
 
@@ -280,6 +284,16 @@ function PartyCard({ party }: { party: Party }) {
   const [error, setError] = useState<string | null>(null);
 
   const capabilityNames = getCapabilityNames(party);
+
+  async function handleDelete() {
+    setDeleteError(null);
+    try {
+      await deleteParty.mutateAsync(party.id);
+      setShowDeleteConfirm(false);
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : "Gagal menghapus party");
+    }
+  }
 
   async function handleSave() {
     setError(null);
@@ -359,6 +373,13 @@ function PartyCard({ party }: { party: Party }) {
             className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800"
           >
             <Pencil className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="rounded-lg p-1.5 text-zinc-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40"
+            title="Hapus Party"
+          >
+            <Trash2 className="h-4 w-4" />
           </button>
         </div>
       </div>
@@ -449,6 +470,40 @@ function PartyCard({ party }: { party: Party }) {
           </button>
         </div>
       </div>
+
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-zinc-900">
+            <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">
+              Hapus Party?
+            </h3>
+            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+              Party <strong>{party.name}</strong> akan dihapus. Produk tidak akan tampil lagi di marketplace.
+            </p>
+            <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-500">
+              Chat & transaksi tetap tersimpan.
+            </p>
+            {deleteError && (
+              <p className="mt-3 text-xs text-red-600">{deleteError}</p>
+            )}
+            <div className="mt-5 flex gap-2">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 rounded-lg border border-zinc-300 py-2 text-sm font-semibold text-zinc-700 dark:border-zinc-700 dark:text-zinc-300"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleteParty.isPending}
+                className="flex-1 rounded-lg bg-red-600 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+              >
+                {deleteParty.isPending ? "Menghapus..." : "Hapus"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

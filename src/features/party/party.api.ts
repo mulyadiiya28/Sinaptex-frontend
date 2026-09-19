@@ -24,4 +24,11 @@ export const partyApi = {
   /** DELETE /parties/{id}/capabilities/{capabilityId} — hapus Capability dari Party milik sendiri */
   removeCapability: (id: string, capabilityId: string) =>
     apiClient.delete<void>(`/api/v1/parties/${id}/capabilities/${capabilityId}`),
+
+  /**
+   * DELETE /parties/{id} — soft delete Party (owner only).
+   * Produk ikut nonaktif, chat & history tetap.
+   */
+  delete: (id: string) =>
+    apiClient.delete<void>(`/api/v1/parties/${id}`),
 };
